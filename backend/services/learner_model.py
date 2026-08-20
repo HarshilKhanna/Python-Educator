@@ -1,0 +1,83 @@
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from models import Mastery, AdaptationEvent, AuditLog
+
+class LearnerModelService:
+    """
+    Sole write path to the learner model.
+    Enforces validation, creates adaptation events, updates materialized mastery state,
+    and records audit logs in a single transaction.
+    """
+
+    @staticmethod
+    async def record_update(
+        session: AsyncSession,
+        source: str,
+        student_id: str,
+        topic_id: str,
+        signal: str,
+        delta: float
+    ) -> float:
+        """
+        Appends an AdaptationEvent, updates the Mastery table, and logs the transaction.
+        Returns the new mastery value.
+        """
+        # 1. Fetch current mastery state
+        stmt = select(Mastery).where(Mastery.student_id == student_id, Mastery.topic_id == topic_id)
+        result = await session.execute(stmt)
+        mastery_record = result.scalar_one_or_none()
+        
+        before_state = None
+        if mastery_record:
+            before_state = {
+                "mastery_level": mastery_record.mastery_level,
+                "confidence": mastery_record.confidence,
+                "style_preferences": mastery_record.style_preferences
+            }
+        else:
+            # Create a new blank record if none exists
+            mastery_record = Mastery(
+                student_id=student_id,
+                topic_id=topic_id,
+                mastery_level=0.0,
+                confidence=0.0
+            )
+            session.add(mastery_record)
+
+        # 2. Enforce logic invariants (e.g. mastery clamped between 0 and 1)
+        new_mastery = mastery_record.mastery_level + delta
+        new_mastery = max(0.0, min(1.0, new_mastery))
+        
+        mastery_record.mastery_level = new_mastery
+        
+        # 3. Create the adaptation event
+        event = AdaptationEvent(
+            student_id=student_id,
+            topic_id=topic_id,
+            source=source,
+            signal=signal,
+            delta=delta
+        )
+        session.add(event)
+        
+        # Flush to get the event ID for the audit log
+        await session.flush()
+        
+        after_state = {
+            "mastery_level": mastery_record.mastery_level,
+            "confidence": mastery_record.confidence,
+            "style_preferences": mastery_record.style_preferences
+        }
+        
+        # 4. Create the audit log
+        audit = AuditLog(
+            adaptation_event_id=event.id,
+            student_id=student_id,
+            topic_id=topic_id,
+            before_state=before_state,
+            after_state=after_state
+        )
+        session.add(audit)
+        
+        # The caller is responsible for calling await session.commit()
+        return new_mastery

@@ -1,0 +1,50 @@
+{
+    "activities": [
+        {
+            "id": "mvp_var_01",
+            "topic_id": "variables",
+            "difficulty": 1,
+            "pedagogy_type": "concrete_analogy",
+            "prompt": "Imagine a variable is a named box. Create a box named `score` and put the number `10` inside it.",
+            "correct_answer": "score = 10",
+            "explanation": "Variables store values. 'score' is the name of the box, and '=' puts the value '10' into it."
+        },
+        {
+            "id": "mvp_loop_01",
+            "topic_id": "loops",
+            "prerequisite_topic_ids": [
+                "variables"
+            ],
+            "difficulty": 2,
+            "pedagogy_type": "repetition_tolerance",
+            "prompt": "Now, we need to add 1 to our `score` box 5 times. Write a `for` loop that runs 5 times.",
+            "correct_answer": "for i in range(5):",
+            "explanation": "A for loop repeats an action. 'range(5)' means it happens exactly 5 times."
+        },
+        {
+            "id": "mvp_func_01",
+            "topic_id": "functions",
+            "prerequisite_topic_ids": [
+                "variables",
+                "loops"
+            ],
+            "difficulty": 3,
+            "pedagogy_type": "scaffolded_progression",
+            "prompt": "Let's put our loop inside a reusable machine (a function). Define a function named `add_five` that takes `score` as a parameter.",
+            "correct_answer": "def add_five(score):",
+            "explanation": "Functions are reusable blocks of code. You pass the variable 'score' into it."
+        },
+        {
+            "id": "mvp_rec_01",
+            "topic_id": "recursion",
+            "prerequisite_topic_ids": [
+                "functions"
+            ],
+            "difficulty": 4,
+            "pedagogy_type": "mastery_gated",
+            "prompt": "Instead of a for loop, let's make the function call itself! If `score` is less than 15, make `add_five` call itself with `score + 1`. This is recursion.",
+            "correct_answer": "return add_five(score + 1)",
+            "explanation": "Recursion means the function acts like a loop by calling itself until a condition is met."
+        }
+    ]
+}

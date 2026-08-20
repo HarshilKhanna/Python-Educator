@@ -1,0 +1,372 @@
+{
+  "activities": [
+    {
+      "id": "fa643540-a44a-4d84-aa56-e4b9be9e21a7",
+      "topic_id": "loops",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "for i in range(5, 0, -1):\n    print(i)",
+      "options": [
+        "5\n4\n3\n2\n1",
+        "4\n3\n2\n1\n0",
+        "5\n4\n3\n2\n1\n0",
+        "Nothing is printed"
+      ],
+      "correct_answer": "5\n4\n3\n2\n1",
+      "explanation": "range(5, 0, -1) counts down from 5, stopping before 0. Values: 5, 4, 3, 2, 1.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.6  for loops"
+      }
+    },
+    {
+      "id": "a36c7516-deee-4b18-9b94-ef0e0bd4b2a0",
+      "topic_id": "loops",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "for __ in range(3):\n    print('Hello')",
+      "options": [
+        "Hello\nHello\nHello",
+        "Hello",
+        "__\n__\n__",
+        "Error"
+      ],
+      "correct_answer": "Hello\nHello\nHello",
+      "explanation": "__ is a valid loop variable when the index is unused. range(3) runs 3 iterations, printing 'Hello' each time.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.6  for loops"
+      }
+    },
+    {
+      "id": "1b03339f-ec37-4b10-94ee-886d249ab567",
+      "topic_id": "loops",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "for i in range(2):\n    for j in range(2):\n        print(i, j)",
+      "options": [
+        "0 0\n0 1\n1 0\n1 1",
+        "0 0\n1 1",
+        "0\n1\n0\n1",
+        "0 0\n0 1"
+      ],
+      "correct_answer": "0 0\n0 1\n1 0\n1 1",
+      "explanation": "The outer loop runs i=0, i=1. For each i, the inner loop runs j=0, j=1. Inner loop completes fully before outer advances.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.6  for loops"
+      }
+    },
+    {
+      "id": "89b2cbeb-4656-4868-b318-2ec1b6937a96",
+      "topic_id": "loops",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "for i in range(3):\n    print(i)\nelse:\n    print('done')",
+      "options": [
+        "0\n1\n2\ndone",
+        "0\n1\n2",
+        "done",
+        "Error"
+      ],
+      "correct_answer": "0\n1\n2\ndone",
+      "explanation": "The else clause of a for loop executes when the loop finishes normally (not via break). Here the loop completes, so 'done' prints.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.6  for loops"
+      }
+    },
+    {
+      "id": "b478210b-c510-40b0-9e3a-e12664ceb471",
+      "topic_id": "loops",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "i = 1\nwhile i < 4:\n    print(i)\n    i = i + 1",
+      "options": [
+        "1\n2\n3",
+        "1\n2\n3\n4",
+        "0\n1\n2\n3",
+        "Runs forever"
+      ],
+      "correct_answer": "1\n2\n3",
+      "explanation": "i starts at 1. Loop prints and increments until i reaches 4, at which point i < 4 is False and the loop ends.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.7 while loops"
+      }
+    },
+    {
+      "id": "6ec7db69-94d0-496b-a7af-26f0e9a1fca0",
+      "topic_id": "loops",
+      "activity_type": "predict_output",
+      "prompt_text": "If the user types 3 then 0, what does this code print?",
+      "code_snippet": "while True:\n    x = int(input())\n    if x == 0:\n        break\n    print(x * x)",
+      "options": [
+        "9",
+        "9\n0",
+        "3\n9",
+        "0"
+      ],
+      "correct_answer": "9",
+      "explanation": "x=3: 3*3=9 is printed. x=0: break fires before print, loop ends. Only 9 is printed.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.7 while loops"
+      }
+    },
+    {
+      "id": "8e6293b7-209d-4134-a564-0c494cbe23b1",
+      "topic_id": "loops",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "i = 1\nwhile i < 11:\n    print(i)\n    i = i + 1",
+      "options": [
+        "1 through 10, one per line",
+        "1 through 11, one per line",
+        "0 through 10, one per line",
+        "Runs forever"
+      ],
+      "correct_answer": "1 through 10, one per line",
+      "explanation": "i starts at 1, increments each iteration, and stops when i reaches 11 (condition i < 11 becomes False). This prints 1 to 10.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.7 while loops"
+      }
+    },
+    {
+      "id": "11283530-9993-4dd9-ac04-25c1b786f7df",
+      "topic_id": "loops",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "for i in range(1, 4):\n    for j in range(1, 3):\n        print(i * j)",
+      "options": [
+        "1\n2\n2\n4\n3\n6",
+        "1\n2\n3\n2\n4\n6",
+        "1\n4\n9",
+        "2\n4\n6"
+      ],
+      "correct_answer": "1\n2\n2\n4\n3\n6",
+      "explanation": "i=1: j=1→1*1=1, j=2→1*2=2. i=2: j=1→2*1=2, j=2→2*2=4. i=3: j=1→3*1=3, j=2→3*2=6.",
+      "difficulty": 3,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.6  for loops"
+      }
+    },
+    {
+      "id": "ae92adfa-eed8-400f-8587-2596fe8fa2e2",
+      "topic_id": "loops",
+      "activity_type": "fill_blank",
+      "prompt_text": "Fill in the blank so that the loop prints: 0  1  2  3  4",
+      "code_snippet": "for i in range(___):\n    print(i)",
+      "options": null,
+      "correct_answer": "5",
+      "explanation": "range(5) produces values 0 through 4. When only one argument is given, it is treated as the stop value with start=0 and step=1.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.6  for loops"
+      }
+    },
+    {
+      "id": "730af3c0-d268-4e9f-b10c-005087fa351f",
+      "topic_id": "loops",
+      "activity_type": "fill_blank",
+      "prompt_text": "Fill in the blank so the loop counts down: 5  4  3  2  1",
+      "code_snippet": "for i in range(5, 0, ___):\n    print(i)",
+      "options": null,
+      "correct_answer": "-1",
+      "explanation": "A negative step makes range count downward. range(5, 0, -1) produces 5, 4, 3, 2, 1 — stopping before 0.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.6  for loops"
+      }
+    },
+    {
+      "id": "711dac0a-b1a5-4892-b0b3-cb03cd02d081",
+      "topic_id": "loops",
+      "activity_type": "fill_blank",
+      "prompt_text": "Fill in the blank so the nested loop uses a different variable for the inner iteration, and the print outputs: 0 0  0 1  1 0  1 1  ...",
+      "code_snippet": "for i in range(3):\n    for ___ in range(2):\n        print(i, j)",
+      "options": null,
+      "correct_answer": "j",
+      "explanation": "Nested loops need separate index variables. Using j for the inner loop keeps it independent of the outer i. Both variables are printed inside the inner body.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.6  for loops"
+      }
+    },
+    {
+      "id": "0f024722-68d1-47ac-ab00-2f1c6fd5c22f",
+      "topic_id": "loops",
+      "activity_type": "fill_blank",
+      "prompt_text": "Fill in the blank so that 'All done' is printed after the loop finishes normally.",
+      "code_snippet": "for i in range(4):\n    print(i)\n___:\n    print('All done')",
+      "options": null,
+      "correct_answer": "else",
+      "explanation": "The else clause on a for loop runs when the loop completes without being interrupted by a break statement.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.6  for loops"
+      }
+    },
+    {
+      "id": "be2a8511-9787-4b2d-a87c-f29060323344",
+      "topic_id": "loops",
+      "activity_type": "fill_blank",
+      "prompt_text": "Fill in the blank so the while loop stops (exits) when x equals 0.",
+      "code_snippet": "while True:\n    x = int(input())\n    if x == 0:\n        ___\n    print(x * x)",
+      "options": null,
+      "correct_answer": "break",
+      "explanation": "break immediately exits the nearest enclosing loop. When x is 0 the break fires before print, ending the while True loop.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.7 while loops"
+      }
+    },
+    {
+      "id": "0217c587-b479-47dd-954d-21f004438fe9",
+      "topic_id": "loops",
+      "activity_type": "fill_blank",
+      "prompt_text": "Fill in the blank (a single keyword) so that the while loop runs correctly and terminates.",
+      "code_snippet": "i = 1\n___ i < 6:\n    print(i)\n    i = i + 1",
+      "options": null,
+      "correct_answer": "while",
+      "explanation": "while is the keyword that starts a conditional loop. The loop repeats as long as the condition (i < 6) is True. Without incrementing i, it would run forever.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.7 while loops"
+      }
+    },
+    {
+      "id": "d210db5c-c027-4a2d-a55f-10e3640df0fc",
+      "topic_id": "loops",
+      "activity_type": "reorder_lines",
+      "prompt_text": "Arrange the lines to make a for loop that prints the numbers 1 to 5, one per line.",
+      "code_snippet": null,
+      "explanation": "The for statement must come first — it sets up i from range(1,6). The indented print(i) is the loop body executed for each value of i.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.6  for loops"
+      },
+      "options": [
+        "    print(i)",
+        "for i in range(1, 6):"
+      ],
+      "correct_answer": "for i in range(1, 6):|    print(i)"
+    },
+    {
+      "id": "7f373938-62c9-4960-a766-71908ea461b0",
+      "topic_id": "loops",
+      "activity_type": "reorder_lines",
+      "prompt_text": "Arrange the lines to build a while loop that prints 1, 2, 3.",
+      "code_snippet": null,
+      "explanation": "i must be initialised before the while statement. The loop body prints then increments i. Forgetting to increment causes an infinite loop.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.7 while loops"
+      },
+      "options": [
+        "i = 1",
+        "while i < 4:",
+        "    print(i)",
+        "    i = i + 1"
+      ],
+      "correct_answer": "i = 1|while i < 4:|    print(i)|    i = i + 1"
+    },
+    {
+      "id": "c50e5e70-fcb5-4106-a621-9e65935b07bb",
+      "topic_id": "loops",
+      "activity_type": "reorder_lines",
+      "prompt_text": "Arrange the lines so the loop prints 1 and 2 then stops when i reaches 3.",
+      "code_snippet": null,
+      "explanation": "The break must be inside the if block (one extra indent level). print(i) comes after the if block so it is only reached when i != 3.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.6  for loops"
+      },
+      "options": [
+        "    if i == 3:",
+        "for i in range(1, 6):",
+        "        break",
+        "    print(i)"
+      ],
+      "correct_answer": "for i in range(1, 6):|    if i == 3:|        break|    print(i)"
+    },
+    {
+      "id": "92116584-5239-4e85-ac1d-486f2daad61e",
+      "topic_id": "loops",
+      "activity_type": "reorder_lines",
+      "prompt_text": "Arrange the lines to build a loop that keeps reading numbers and printing their squares until the user types 0.",
+      "code_snippet": null,
+      "explanation": "while True creates the infinite loop. Input is read first, then the exit condition is checked, then the square is printed — so 0 is never squared.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.7 while loops"
+      },
+      "options": [
+        "        break",
+        "while True:",
+        "    x = int(input())",
+        "    if x == 0:",
+        "    print(x * x)"
+      ],
+      "correct_answer": "while True:|    x = int(input())|    if x == 0:|        break|    print(x * x)"
+    },
+    {
+      "id": "f0d89d46-e7a6-485d-9a9d-49b283f40ded",
+      "topic_id": "loops",
+      "activity_type": "reorder_lines",
+      "prompt_text": "Arrange the lines to build a for loop with an else clause that prints 0, 1, 2 then 'All done'.",
+      "code_snippet": null,
+      "explanation": "The else clause must be at the same indent as for (not inside the loop body). It runs after the loop completes normally.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.6  for loops"
+      },
+      "options": [
+        "else:",
+        "    print(i)",
+        "    print('All done')",
+        "for i in range(3):"
+      ],
+      "correct_answer": "for i in range(3):|    print(i)|else:|    print('All done')"
+    },
+    {
+      "id": "af5a2ff3-aef8-4ec2-b3ab-3176524bd59a",
+      "topic_id": "loops",
+      "activity_type": "reorder_lines",
+      "prompt_text": "Arrange the lines to create nested for loops that print a 3×3 multiplication table (rows i, columns j, product i*j).",
+      "code_snippet": null,
+      "explanation": "The outer for (i) comes first. The inner for (j) is indented one level. The print is inside the inner loop — indented two levels.",
+      "difficulty": 3,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.6  for loops"
+      },
+      "options": [
+        "for i in range(1, 4):",
+        "        print(i, j, i * j)",
+        "    for j in range(1, 4):"
+      ],
+      "correct_answer": "for i in range(1, 4):|    for j in range(1, 4):|        print(i, j, i * j)"
+    }
+  ]
+}

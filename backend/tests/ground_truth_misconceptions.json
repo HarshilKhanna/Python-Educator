@@ -1,0 +1,26 @@
+[
+    {
+        "id": "gt_var_01",
+        "topic": "variables",
+        "submitted_code": "score == 10",
+        "error_trace": "NameError: name 'score' is not defined",
+        "ground_truth_misconception": "Confusing assignment operator '=' with equality operator '=='",
+        "slow_learner_category": "syntax_vs_logic"
+    },
+    {
+        "id": "gt_loop_01",
+        "topic": "loops",
+        "submitted_code": "for i in 5:\n    score = score + 1",
+        "error_trace": "TypeError: 'int' object is not iterable",
+        "ground_truth_misconception": "Misunderstanding that loops require an iterable (range) rather than just an integer.",
+        "slow_learner_category": "abstract_type_confusion"
+    },
+    {
+        "id": "gt_func_01",
+        "topic": "functions",
+        "submitted_code": "def add_five(score):\nscore = score + 5\nreturn score",
+        "error_trace": "IndentationError: expected an indented block",
+        "ground_truth_misconception": "Failure to grasp Python scope and block structures via indentation (common compounding gap for visual learners).",
+        "slow_learner_category": "visual_scope_confusion"
+    }
+]

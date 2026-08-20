@@ -1,0 +1,164 @@
+{
+  "activities": [
+    {
+      "id": "c93de1dc-e492-469e-9932-c04d1e1b6f96",
+      "topic_id": "conditionals",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "age = 20\nif age >= 18:\n    print('You are an adult')",
+      "options": [
+        "You are an adult",
+        "You are a minor",
+        "True",
+        "Nothing is printed"
+      ],
+      "correct_answer": "You are an adult",
+      "explanation": "20 >= 18 is True, so the if-block executes and prints 'You are an adult'.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "02-conditionals.md",
+        "heading": "4.2 if Statement"
+      }
+    },
+    {
+      "id": "c11175ea-d83a-4424-9dbd-49589316d4f9",
+      "topic_id": "conditionals",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "age = 15\nif age >= 18:\n    print('You are an adult')\nelse:\n    print('You are a minor')",
+      "options": [
+        "You are a minor",
+        "You are an adult",
+        "True\nFalse",
+        "Error"
+      ],
+      "correct_answer": "You are a minor",
+      "explanation": "15 >= 18 is False, so the else-branch runs and prints 'You are a minor'.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "02-conditionals.md",
+        "heading": "4.3 if-else statement"
+      }
+    },
+    {
+      "id": "c128eba7-4015-40aa-a68a-e0047c724d9d",
+      "topic_id": "conditionals",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "a = 7\nb = 3\nc = 1\nif (a >= b) and (a >= c):\n    print('Biggest=', a)\nelif (b >= c):\n    print('Biggest=', b)\nelse:\n    print('Biggest=', c)",
+      "options": [
+        "Biggest= 7",
+        "Biggest= 3",
+        "Biggest= 1",
+        "Biggest= 7\nBiggest= 3"
+      ],
+      "correct_answer": "Biggest= 7",
+      "explanation": "7 >= 3 and 7 >= 1 are both True, so the first branch runs. elif and else are skipped.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "02-conditionals.md",
+        "heading": "4.5. elif"
+      }
+    },
+    {
+      "id": "4cfe0ef4-e52a-4ed7-81e9-247b2739b864",
+      "topic_id": "conditionals",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "c = 2\nif (c == 1):\n    print(10 + 5)\nelif (c == 2):\n    print(10 - 5)\nelif (c == 3):\n    print(10 * 5)\nelse:\n    print(10 / 5)",
+      "options": [
+        "5",
+        "15",
+        "50",
+        "2"
+      ],
+      "correct_answer": "5",
+      "explanation": "c == 1 is False, c == 2 is True, so the second branch runs: 10 - 5 = 5.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "02-conditionals.md",
+        "heading": "4.5. elif"
+      }
+    },
+    {
+      "id": "86fb9371-c853-4301-857c-96caed2df10b",
+      "topic_id": "conditionals",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "for i in range(1, 6):\n    if i == 3:\n        break\n    print(i)",
+      "options": [
+        "1\n2",
+        "1\n2\n3",
+        "1\n2\n4\n5",
+        "1\n2\n3\n4\n5"
+      ],
+      "correct_answer": "1\n2",
+      "explanation": "The loop runs i=1 (prints 1), i=2 (prints 2), i=3 (break fires before print, loop ends). Nothing after 2 is printed.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "02-conditionals.md",
+        "heading": "4.8 break, continue, and pass in loops"
+      }
+    },
+    {
+      "id": "dee3db1d-1e83-4e39-852f-e8efcce3bab6",
+      "topic_id": "conditionals",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "for i in range(1, 6):\n    if i == 3:\n        continue\n    print(i)",
+      "options": [
+        "1\n2\n4\n5",
+        "1\n2\n3\n4\n5",
+        "1\n2",
+        "4\n5"
+      ],
+      "correct_answer": "1\n2\n4\n5",
+      "explanation": "continue skips the rest of the loop body for the current iteration and moves to the next. When i=3, print is skipped; all others print.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "02-conditionals.md",
+        "heading": "4.8 break, continue, and pass in loops"
+      }
+    },
+    {
+      "id": "ce04043b-00e5-462f-a847-3aa2ddb09b9b",
+      "topic_id": "conditionals",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "a = 5\nb = 3\nbig = a\nif b > big:\n    big = b\nprint(big)",
+      "options": [
+        "5",
+        "3",
+        "True",
+        "False"
+      ],
+      "correct_answer": "5",
+      "explanation": "big starts as a (5). b > big is 3 > 5, which is False, so big stays 5.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "02-conditionals.md",
+        "heading": "4.10 Finding biggest of any set of numbers"
+      }
+    },
+    {
+      "id": "4c1867fb-781d-4c14-8b03-f47535e9e969",
+      "topic_id": "conditionals",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "x = True\ny = False\nprint(x and y)\nprint(x or y)\nprint(not x)",
+      "options": [
+        "False\nTrue\nFalse",
+        "True\nTrue\nFalse",
+        "False\nFalse\nTrue",
+        "True\nFalse\nFalse"
+      ],
+      "correct_answer": "False\nTrue\nFalse",
+      "explanation": "True and False = False. True or False = True. not True = False.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "02-conditionals.md",
+        "heading": "4.2 if Statement"
+      }
+    }
+  ]
+}

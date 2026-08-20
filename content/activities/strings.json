@@ -1,0 +1,164 @@
+{
+  "activities": [
+    {
+      "id": "7e43102e-cd56-44a4-bb90-4d4b622f64ec",
+      "topic_id": "strings",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "x = 'janaganamana'\nprint(x[0])",
+      "options": [
+        "j",
+        "a",
+        "janaganamana",
+        "Error"
+      ],
+      "correct_answer": "j",
+      "explanation": "Strings are lists of characters. Index 0 is the first character, 'j'.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "05-strings.md",
+        "heading": "6.3. Processing Strings as lists"
+      }
+    },
+    {
+      "id": "87610067-ffed-4614-9cb6-0e988d3a183f",
+      "topic_id": "strings",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "x = 'janaganamana'\nprint(x[0:3])",
+      "options": [
+        "jan",
+        "jan a",
+        "ana",
+        "jna"
+      ],
+      "correct_answer": "jan",
+      "explanation": "x[0:3] slices characters at indices 0, 1, 2 → 'j', 'a', 'n'.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "05-strings.md",
+        "heading": "6.3. Processing Strings as lists"
+      }
+    },
+    {
+      "id": "f963cdff-8619-43ce-a025-78100f10027b",
+      "topic_id": "strings",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "print('ab' * 3)",
+      "options": [
+        "ababab",
+        "ab ab ab",
+        "aabbbb",
+        "abababab"
+      ],
+      "correct_answer": "ababab",
+      "explanation": "The * operator repeats (multiplies) a string. 'ab' * 3 = 'ababab'.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "05-strings.md",
+        "heading": "6.4. Operators applicable to strings:"
+      }
+    },
+    {
+      "id": "7c2d3c8e-d824-4fbd-b22f-2aab8164087d",
+      "topic_id": "strings",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "print('hello' + ' ' + 'world')",
+      "options": [
+        "hello world",
+        "helloworld",
+        "hello+world",
+        "Error"
+      ],
+      "correct_answer": "hello world",
+      "explanation": "The + operator concatenates strings. 'hello' + ' ' + 'world' joins them: 'hello world'.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "05-strings.md",
+        "heading": "6.4. Operators applicable to strings:"
+      }
+    },
+    {
+      "id": "ec6bb91d-f398-46b2-9d5f-2a7b567f6456",
+      "topic_id": "strings",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "x = 'India'\nprint(x.upper())",
+      "options": [
+        "INDIA",
+        "india",
+        "India",
+        "INDIA "
+      ],
+      "correct_answer": "INDIA",
+      "explanation": "upper() returns a new string with all characters converted to uppercase.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "05-strings.md",
+        "heading": "6.6. String Functions"
+      }
+    },
+    {
+      "id": "cdd2be3f-a4ae-47c1-9d7b-85bbd22e0378",
+      "topic_id": "strings",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "x = 'hello world'\nprint(x.split())",
+      "options": [
+        "['hello', 'world']",
+        "hello world",
+        "('hello', 'world')",
+        "['h','e','l','l','o']"
+      ],
+      "correct_answer": "['hello', 'world']",
+      "explanation": "split() with no argument splits on whitespace and returns a list of words.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "05-strings.md",
+        "heading": "6.6. String Functions"
+      }
+    },
+    {
+      "id": "8c122717-4eb4-4dd9-ae82-2f6ca702e8f6",
+      "topic_id": "strings",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "print('a' in 'janaganamana')",
+      "options": [
+        "True",
+        "False",
+        "a",
+        "Error"
+      ],
+      "correct_answer": "True",
+      "explanation": "The 'in' operator checks membership. 'a' appears in 'janaganamana', so it returns True.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "05-strings.md",
+        "heading": "6. 5. Using in and not in to process Strings or its Slices:"
+      }
+    },
+    {
+      "id": "f1659078-7c74-4466-a167-e7b8b9cd980a",
+      "topic_id": "strings",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "x = 'India'\nprint(len(x))",
+      "options": [
+        "5",
+        "4",
+        "6",
+        "i n d i a"
+      ],
+      "correct_answer": "5",
+      "explanation": "len() returns the number of characters in the string. 'India' has 5 characters: I, n, d, i, a.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "05-strings.md",
+        "heading": "6.6. String Functions"
+      }
+    }
+  ]
+}

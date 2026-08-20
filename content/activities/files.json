@@ -1,0 +1,164 @@
+{
+  "activities": [
+    {
+      "id": "b597324f-6eec-4bc8-b957-ef8179ba292f",
+      "topic_id": "files",
+      "activity_type": "predict_output",
+      "prompt_text": "Assume 'Row.txt' contains exactly one line: 'Row row row your boat\\n'. What does this code print?",
+      "code_snippet": "f = open('Row.txt', 'r')\nf1 = f.readlines()\nprint(len(f1))",
+      "options": [
+        "1",
+        "5",
+        "0",
+        "Error"
+      ],
+      "correct_answer": "1",
+      "explanation": "readlines() returns a list where each element is one line of the file. A file with one line produces a list of length 1.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "07-files.md",
+        "heading": "9.2. Opening & Reading Files"
+      }
+    },
+    {
+      "id": "de734c51-34aa-4a52-abb4-76c0e01e19f0",
+      "topic_id": "files",
+      "activity_type": "predict_output",
+      "prompt_text": "Assume 'Row.txt' has 4 lines. What type does f.readlines() return?",
+      "code_snippet": "f = open('Row.txt', 'r')\nf1 = f.readlines()\nprint(type(f1))",
+      "options": [
+        "<class 'list'>",
+        "<class 'str'>",
+        "<class 'tuple'>",
+        "<class 'file'>"
+      ],
+      "correct_answer": "<class 'list'>",
+      "explanation": "readlines() reads the entire file and returns a list of strings, one string per line including the trailing \\n character.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "07-files.md",
+        "heading": "9.2. Opening & Reading Files"
+      }
+    },
+    {
+      "id": "94463ee7-a576-4889-a21d-8fbeb59532fc",
+      "topic_id": "files",
+      "activity_type": "predict_output",
+      "prompt_text": "Assume 'Row.txt' contains: 'Row row row your boat\\n'. What does this code print?",
+      "code_snippet": "f = open('Row.txt', 'r')\nf1 = f.readlines()\nline = f1[0].strip()\nprint(line)",
+      "options": [
+        "Row row row your boat",
+        "Row row row your boat\\n",
+        "['Row', 'row', 'row', 'your', 'boat']",
+        "Error"
+      ],
+      "correct_answer": "Row row row your boat",
+      "explanation": "strip() removes leading and trailing whitespace including \\n. The result is the line text without the newline character.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "07-files.md",
+        "heading": "9.2. Opening & Reading Files"
+      }
+    },
+    {
+      "id": "53adde8b-74db-4328-8afc-cd3d25ac6c76",
+      "topic_id": "files",
+      "activity_type": "predict_output",
+      "prompt_text": "Assume 'Row.txt' contains: 'Row row row your boat\\n'. What does this code print?",
+      "code_snippet": "f = open('Row.txt', 'r')\nf1 = f.readlines()\nline = f1[0].strip()\nwords = line.split()\nprint(len(words))",
+      "options": [
+        "5",
+        "4",
+        "1",
+        "Error"
+      ],
+      "correct_answer": "5",
+      "explanation": "After strip(), line = 'Row row row your boat'. split() with no argument splits on spaces → 5 words.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "07-files.md",
+        "heading": "9.2. Opening & Reading Files"
+      }
+    },
+    {
+      "id": "25509f00-a7db-474c-ba65-b700240923f4",
+      "topic_id": "files",
+      "activity_type": "predict_output",
+      "prompt_text": "Assume 'Row.txt' has 4 lines (the nursery rhyme). What does this code print?",
+      "code_snippet": "f = open('Row.txt', 'r')\nf1 = f.readlines()\nf2 = []\nfor i in f1:\n    x = i.strip()\n    x = x.split()\n    f2.append(x)\nprint(len(f2))",
+      "options": [
+        "4",
+        "1",
+        "0",
+        "Error"
+      ],
+      "correct_answer": "4",
+      "explanation": "The loop processes each of the 4 lines and appends a word-list to f2. len(f2) equals the number of lines, which is 4.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "07-files.md",
+        "heading": "9.2. Opening & Reading Files"
+      }
+    },
+    {
+      "id": "8b9c62c1-7919-4b6d-851e-0c28ee2ab45f",
+      "topic_id": "files",
+      "activity_type": "predict_output",
+      "prompt_text": "Assume 'Row.txt' has 4 lines (the nursery rhyme). After the loop below, what is f2[0]?",
+      "code_snippet": "# Row.txt lines:\n# Row row row your boat\n# Gently down the stream\n# Merrily merrily merrily merrily\n# Life is but a dream\nf = open('Row.txt', 'r')\nf1 = f.readlines()\nf2 = []\nfor i in f1:\n    f2.append(i.strip().split())\nprint(f2[0])",
+      "options": [
+        "['Row', 'row', 'row', 'your', 'boat']",
+        "'Row row row your boat'",
+        "['Row row row your boat']",
+        "Row"
+      ],
+      "correct_answer": "['Row', 'row', 'row', 'your', 'boat']",
+      "explanation": "strip() removes \\n, then split() breaks the line into individual words. f2[0] is the word-list for the first line.",
+      "difficulty": 3,
+      "source_section": {
+        "file": "07-files.md",
+        "heading": "9.2. Opening & Reading Files"
+      }
+    },
+    {
+      "id": "2eeed0fd-eb5d-4a20-8e36-e1b58b024671",
+      "topic_id": "files",
+      "activity_type": "predict_output",
+      "prompt_text": "What string do you pass to open() to open a file for reading?",
+      "code_snippet": "f = open('myfile.txt', ___)\n# What goes in the blank?",
+      "options": [
+        "'r'",
+        "'w'",
+        "'read'",
+        "True"
+      ],
+      "correct_answer": "'r'",
+      "explanation": "The mode string 'r' opens the file for reading. This is the mode used throughout the handbook chapter.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "07-files.md",
+        "heading": "9.2. Opening & Reading Files"
+      }
+    },
+    {
+      "id": "1a9c4e7c-e4e4-4461-a1ba-507c580e89fc",
+      "topic_id": "files",
+      "activity_type": "predict_output",
+      "prompt_text": "⚠️ Note: This question is about what happens at runtime.\nAssume 'Row.txt' contains the nursery rhyme (4 lines). What does this print?",
+      "code_snippet": "f = open('Row.txt', 'r')\nf1 = f.readlines()\nf2 = []\nfor i in f1:\n    f2.append(i.strip().split())\nprint(f2[1][0])",
+      "options": [
+        "Gently",
+        "Row",
+        "down",
+        "Merrily"
+      ],
+      "correct_answer": "Gently",
+      "explanation": "f2[1] is the word-list for the second line: ['Gently', 'down', 'the', 'stream']. f2[1][0] is 'Gently'.",
+      "difficulty": 3,
+      "source_section": {
+        "file": "07-files.md",
+        "heading": "9.2. Opening & Reading Files"
+      }
+    }
+  ]
+}

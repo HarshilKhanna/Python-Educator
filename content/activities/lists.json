@@ -1,0 +1,164 @@
+{
+  "activities": [
+    {
+      "id": "fcbf4174-3146-437b-9c5f-a3d95641f194",
+      "topic_id": "lists",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "x = [10, 20, 30, 40]\nprint(x[1])",
+      "options": [
+        "20",
+        "10",
+        "30",
+        "Error: index out of range"
+      ],
+      "correct_answer": "20",
+      "explanation": "List indices start at 0. x[0]=10, x[1]=20, x[2]=30, x[3]=40.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "04-lists.md",
+        "heading": "5.3.2 LIST INDICES"
+      }
+    },
+    {
+      "id": "ffe393ad-7b95-41f8-b95e-394c9e084fc9",
+      "topic_id": "lists",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "x = [10, 20, 30, 40]\nprint(x[-1])",
+      "options": [
+        "40",
+        "10",
+        "30",
+        "-1"
+      ],
+      "correct_answer": "40",
+      "explanation": "Negative indices count from the right. x[-1] is the last element, 40.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "04-lists.md",
+        "heading": "5.3.2 LIST INDICES"
+      }
+    },
+    {
+      "id": "1e331a83-c7c5-459b-b227-cc383154570c",
+      "topic_id": "lists",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "x = [0, 11, 22, 33, 44, 55]\nprint(x[1:4])",
+      "options": [
+        "[11, 22, 33]",
+        "[11, 22, 33, 44]",
+        "[0, 11, 22]",
+        "[22, 33, 44]"
+      ],
+      "correct_answer": "[11, 22, 33]",
+      "explanation": "x[1:4] slices from index 1 up to (not including) index 4: elements at positions 1, 2, 3 → 11, 22, 33.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "04-lists.md",
+        "heading": "5.3.6 SPECIAL HANDLING OF LISTS: Slicing, Comprehension and Enumeration"
+      }
+    },
+    {
+      "id": "d8a396be-3606-4284-8351-71c6f21a17a3",
+      "topic_id": "lists",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "x = [3, 1, 4, 1, 5]\nx.sort()\nprint(x)",
+      "options": [
+        "[1, 1, 3, 4, 5]",
+        "[3, 1, 4, 1, 5]",
+        "[5, 4, 3, 1, 1]",
+        "[1, 3, 4, 5]"
+      ],
+      "correct_answer": "[1, 1, 3, 4, 5]",
+      "explanation": "x.sort() sorts the list in-place in ascending order. Duplicates (1 appears twice) are preserved.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "04-lists.md",
+        "heading": "5.3.5 'FUNCTIONS' FOR BASIC MANIPULATION OF LISTS"
+      }
+    },
+    {
+      "id": "280679aa-182c-48ed-98a8-09ec6ce2fc69",
+      "topic_id": "lists",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "x = [1, 2, 3]\nx.append(4)\nprint(len(x))",
+      "options": [
+        "4",
+        "3",
+        "5",
+        "[1, 2, 3, 4]"
+      ],
+      "correct_answer": "4",
+      "explanation": "append() adds one element to the end. x goes from length 3 to length 4.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "04-lists.md",
+        "heading": "5.3.5 'FUNCTIONS' FOR BASIC MANIPULATION OF LISTS"
+      }
+    },
+    {
+      "id": "068e2104-ab32-4b3b-898b-2a3429717a4e",
+      "topic_id": "lists",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "x = [1, 2, 3, 4, 5]\ny = [i * i for i in x]\nprint(y)",
+      "options": [
+        "[1, 4, 9, 16, 25]",
+        "[1, 2, 3, 4, 5]",
+        "[2, 4, 6, 8, 10]",
+        "[1, 4, 9]"
+      ],
+      "correct_answer": "[1, 4, 9, 16, 25]",
+      "explanation": "List comprehension [i*i for i in x] squares each element: 1→1, 2→4, 3→9, 4→16, 5→25.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "04-lists.md",
+        "heading": "5.3.7 LIST COMPREHENSION"
+      }
+    },
+    {
+      "id": "a49fbda5-b909-4d0d-aabe-33ef44381dc7",
+      "topic_id": "lists",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "marks = [55, 90, 33, 69]\nsum = 0\nfor i in range(len(marks)):\n    sum = sum + marks[i]\nprint(sum)",
+      "options": [
+        "247",
+        "55",
+        "4",
+        "Error"
+      ],
+      "correct_answer": "247",
+      "explanation": "Iterating by index: sum = 0+55+90+33+69 = 247.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "04-lists.md",
+        "heading": "5.3.4 PROCESSING LISTS WITH FOR-LOOPS"
+      }
+    },
+    {
+      "id": "83d44b9a-f0e1-4865-9429-c8984428ed8d",
+      "topic_id": "lists",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "x = [1, 2, 3]\nprint(x[-2])",
+      "options": [
+        "2",
+        "3",
+        "1",
+        "-2"
+      ],
+      "correct_answer": "2",
+      "explanation": "x[-1]=3 (last), x[-2]=2 (second from last), x[-3]=1 (first). Negative indexing counts from the right starting at -1.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "04-lists.md",
+        "heading": "5.3.2 LIST INDICES"
+      }
+    }
+  ]
+}

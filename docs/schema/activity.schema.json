@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pythoneducator.local/schemas/activity.schema.json",
+  "title": "Activity",
+  "description": "A single learner-facing activity item tied to a curriculum-graph topic.",
+  "type": "object",
+  "required": [
+    "id",
+    "topic_id",
+    "activity_type",
+    "prompt_text",
+    "correct_answer",
+    "explanation",
+    "difficulty",
+    "source_section"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Globally unique identifier for this activity (UUID v4)."
+    },
+    "topic_id": {
+      "type": "string",
+      "description": "Foreign key into the curriculum graph topics table (e.g. 'loops', 'conditionals').",
+      "minLength": 1
+    },
+    "activity_type": {
+      "type": "string",
+      "enum": ["predict_output", "fill_blank", "reorder_lines", "spot_bug"],
+      "description": "Governs how the frontend renders and evaluates this activity."
+    },
+    "prompt_text": {
+      "type": "string",
+      "description": "The question or instruction shown to the learner. Plain text or lightweight Markdown.",
+      "minLength": 1
+    },
+    "code_snippet": {
+      "type": ["string", "null"],
+      "description": "The Python code block associated with the activity. Null when the activity is purely text-based.",
+      "default": null
+    },
+    "options": {
+      "type": ["array", "null"],
+      "description": "Multiple-choice or reorder options. Required for predict_output and reorder_lines; null for fill_blank and spot_bug.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 2,
+      "default": null
+    },
+    "correct_answer": {
+      "type": "string",
+      "description": "The canonical correct answer. For reorder_lines, a pipe-delimited ordered string of option values.",
+      "minLength": 1
+    },
+    "explanation": {
+      "type": "string",
+      "description": "Shown after the learner submits. Explains why the correct answer is correct.",
+      "minLength": 1
+    },
+    "difficulty": {
+      "type": "integer",
+      "enum": [1, 2, 3],
+      "description": "1 = introductory, 2 = practise, 3 = stretch/challenge."
+    },
+    "source_section": {
+      "type": "object",
+      "description": "Traceable back-reference into the handbook markdown files.",
+      "required": ["file", "heading"],
+      "additionalProperties": false,
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Relative path from /docs/handbook/, e.g. '03-loops.md'.",
+          "pattern": "^[\\w-]+\\.md$"
+        },
+        "heading": {
+          "type": "string",
+          "description": "The exact section heading in that file, e.g. '4.6  for loops'.",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "if": {
+    "properties": { "activity_type": { "const": "reorder_lines" } },
+    "required": ["activity_type"]
+  },
+  "then": {
+    "properties": {
+      "options": { "type": "array", "minItems": 2 }
+    },
+    "required": ["options"]
+  }
+}

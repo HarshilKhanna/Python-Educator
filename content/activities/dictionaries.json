@@ -1,0 +1,164 @@
+{
+  "activities": [
+    {
+      "id": "65333da5-0903-413f-a301-bd0200676bee",
+      "topic_id": "dictionaries",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "d = {'India': 'Delhi', 'Japan': 'Tokyo', 'Cuba': 'Havana'}\nprint(d['Japan'])",
+      "options": [
+        "Tokyo",
+        "Japan",
+        "Havana",
+        "KeyError"
+      ],
+      "correct_answer": "Tokyo",
+      "explanation": "Dictionary elements are accessed by key. d['Japan'] returns the value mapped to key 'Japan', which is 'Tokyo'.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "06-dictionaries.md",
+        "heading": "8.3. Accessing elements of a Dictionary"
+      }
+    },
+    {
+      "id": "221be343-8192-4346-8bb7-d87bb000c20b",
+      "topic_id": "dictionaries",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "d = {'a': 1, 'b': 2}\nprint(len(d))",
+      "options": [
+        "2",
+        "1",
+        "{'a': 1, 'b': 2}",
+        "Error"
+      ],
+      "correct_answer": "2",
+      "explanation": "len() on a dictionary returns the number of key-value pairs. This dict has two pairs, so len is 2.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "06-dictionaries.md",
+        "heading": "8.4. Functions applicable to dictionaries."
+      }
+    },
+    {
+      "id": "b9b34f51-b194-4d21-b2d7-150577a1b21e",
+      "topic_id": "dictionaries",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "d = {'a': 1, 'b': 1, 'a': 2}\nprint(d['a'])",
+      "options": [
+        "2",
+        "1",
+        "Error: duplicate key",
+        "[1, 2]"
+      ],
+      "correct_answer": "2",
+      "explanation": "Duplicate keys overwrite each other — only the last assignment is kept. 'a' is set to 1 then overwritten with 2.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "06-dictionaries.md",
+        "heading": "8.2. Defining dictionaries"
+      }
+    },
+    {
+      "id": "584ce0fb-678a-44b0-a195-bb16fc534cfa",
+      "topic_id": "dictionaries",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "d = {'india': 'delhi', 'japan': 'tokyo', 'cuba': 'havana'}\ndel d['japan']\nprint(d)",
+      "options": [
+        "{'india': 'delhi', 'cuba': 'havana'}",
+        "{'india': 'delhi', 'japan': 'tokyo', 'cuba': 'havana'}",
+        "{'japan': 'tokyo'}",
+        "KeyError"
+      ],
+      "correct_answer": "{'india': 'delhi', 'cuba': 'havana'}",
+      "explanation": "del removes a key-value pair by key. After deleting 'japan', only 'india' and 'cuba' pairs remain.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "06-dictionaries.md",
+        "heading": "8.4. Functions applicable to dictionaries."
+      }
+    },
+    {
+      "id": "5c22cb55-8a60-4be4-9a29-ff544a2863b3",
+      "topic_id": "dictionaries",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "d = {'India': 'Delhi', 'Japan': 'Tokyo'}\nprint(d.get('China'))",
+      "options": [
+        "None",
+        "Error",
+        "KeyError",
+        "False"
+      ],
+      "correct_answer": "None",
+      "explanation": "d.get(key) returns None if the key does not exist, unlike d[key] which raises a KeyError.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "06-dictionaries.md",
+        "heading": "8.3. Accessing elements of a Dictionary"
+      }
+    },
+    {
+      "id": "ec679676-0ea3-43b1-9d2b-d32a21cd5fce",
+      "topic_id": "dictionaries",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "d = {1: 11, 2: 22, 3: 33}\nprint(list(d.keys()))",
+      "options": [
+        "[1, 2, 3]",
+        "[11, 22, 33]",
+        "dict_keys([1, 2, 3])",
+        "{1, 2, 3}"
+      ],
+      "correct_answer": "[1, 2, 3]",
+      "explanation": "d.keys() returns a dict_keys view; wrapping with list() converts it to a regular list of keys.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "06-dictionaries.md",
+        "heading": "8.4. Functions applicable to dictionaries."
+      }
+    },
+    {
+      "id": "6ae22442-f76e-4ffc-9a4b-bcfb93533404",
+      "topic_id": "dictionaries",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "d = {}\nd['India'] = 'Delhi'\nd['Cuba'] = 'Havana'\nd['India'] = 'New Delhi'\nprint(d['India'])",
+      "options": [
+        "New Delhi",
+        "Delhi",
+        "Error: key already exists",
+        "None"
+      ],
+      "correct_answer": "New Delhi",
+      "explanation": "Dictionaries are mutable. Assigning to an existing key overwrites its value. The final value for 'India' is 'New Delhi'.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "06-dictionaries.md",
+        "heading": "8.2. Defining dictionaries"
+      }
+    },
+    {
+      "id": "5420259d-701f-46a7-ad9f-4b794b575a9e",
+      "topic_id": "dictionaries",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "d = {'a': 1, 'b': 2}\nd.clear()\nprint(d)",
+      "options": [
+        "{}",
+        "None",
+        "{'a': 1, 'b': 2}",
+        "Error"
+      ],
+      "correct_answer": "{}",
+      "explanation": "clear() removes all items from the dictionary. Printing d afterwards shows an empty dict {}.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "06-dictionaries.md",
+        "heading": "8.4. Functions applicable to dictionaries."
+      }
+    }
+  ]
+}
