@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/activity_session_provider.dart';
+import '../services/auth_service.dart';
 import '../widgets/activity_runner.dart';
 import '../widgets/feedback_panel.dart';
+import 'login_screen.dart';
 
 /// The single activity-flow screen.
 ///
@@ -38,11 +40,56 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
     }
   }
 
+  Future<void> _logout() async {
+    await authService.clearToken();
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = ref.watch(activitySessionProvider);
 
-    // ── Loading ────────────────────────────────────────────────────────────
+    // Listen for token-expiry signal from offline queue sync
+    ref.listen<ActivitySessionState>(activitySessionProvider, (_, next) {
+      if (next.needsRelogin && mounted) {
+        // Clear the flag so the listener doesn't fire again
+        ref.read(activitySessionProvider.notifier).clearReloginFlag();
+        // Show re-login prompt — queued answers are safe
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => AlertDialog(
+            backgroundColor: const Color(0xFF141824),
+            title: const Text(
+              'Session Expired',
+              style: TextStyle(color: Colors.white),
+            ),
+            content: const Text(
+              'Your session has expired. Any offline answers are safely queued '
+              'and will be submitted once you log back in.',
+              style: TextStyle(color: Color(0xFF94A3B8)),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  );
+                },
+                child: const Text('Log In Again',
+                    style: TextStyle(color: Color(0xFF6366F1))),
+              ),
+            ],
+          ),
+        );
+      }
+    });
+
     if (session.isLoading) {
       return const Scaffold(
         backgroundColor: Color(0xFF0A0E1A),
@@ -177,15 +224,33 @@ class _ProgressHeader extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Topic label
-              Text(
-                topicId.replaceAll('_', ' ').toUpperCase(),
-                style: const TextStyle(
-                  color: Color(0xFF6366F1),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.6,
-                ),
+              // Topic label and Logout
+              Row(
+                children: [
+                  Text(
+                    topicId.replaceAll('_', ' ').toUpperCase(),
+                    style: const TextStyle(
+                      color: Color(0xFF6366F1),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.6,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.logout, size: 16, color: Color(0xFF9CA3AF)),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: () async {
+                      await authService.clearToken();
+                      if (context.mounted) {
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(builder: (_) => const LoginScreen()),
+                        );
+                      }
+                    },
+                  ),
+                ],
               ),
               // Stats: streak + score + counter
               Row(

@@ -1,24 +1,51 @@
 /**
  * API client for the FastAPI backend.
  *
- * All requests include a dev-only auth stub header.
- * NOTE: This is NOT production authentication — hardcoded token for the
- * Research Prototype phase only. Replace with real JWT/RBAC before any pilot.
+ * Phase 14 update: the hardcoded dev-token-instructor stub is removed.
+ * Tokens are read dynamically from localStorage on every request.
+ * A 401 response triggers logout and redirect to the login screen.
  */
 
 const BASE_URL = '/api'
 
-// DEV-ONLY: hardcoded instructor token. NOT production-ready.
-const AUTH_HEADERS = {
-  'Content-Type': 'application/json',
-  'Authorization': 'Bearer dev-token-instructor',
+/**
+ * Get the current auth token from localStorage.
+ * Returns null if not logged in.
+ */
+function getToken() {
+  return localStorage.getItem('auth_token')
+}
+
+/**
+ * Handle a 401 response — clear stored credentials and redirect to login.
+ * This covers both expired tokens and revoked tokens.
+ */
+function handleUnauthorized() {
+  localStorage.removeItem('auth_token')
+  localStorage.removeItem('user_role')
+  localStorage.removeItem('user_id')
+  // Force a full page reload so App.jsx re-evaluates auth state
+  window.location.reload()
 }
 
 async function request(path, options = {}) {
+  const token = getToken()
+  const authHeader = token ? { Authorization: `Bearer ${token}` } : {}
+
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
-    headers: { ...AUTH_HEADERS, ...(options.headers || {}) },
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeader,
+      ...(options.headers || {}),
+    },
   })
+
+  if (res.status === 401) {
+    handleUnauthorized()
+    throw new Error('Session expired. Please log in again.')
+  }
+
   if (!res.ok) {
     const text = await res.text()
     throw new Error(`API error ${res.status}: ${text}`)
@@ -41,18 +68,24 @@ export const rejectAdaptation = (id, reason) =>
 // Materials
 export const getTopics = () => request('/curriculum/topics')
 
-export const uploadMaterial = (formData) =>
-  fetch(`${BASE_URL}/materials/upload`, {
+export const uploadMaterial = (formData) => {
+  const token = getToken()
+  return fetch(`${BASE_URL}/materials/upload`, {
     method: 'POST',
-    headers: { Authorization: AUTH_HEADERS.Authorization },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: formData,
   }).then(async (res) => {
+    if (res.status === 401) {
+      handleUnauthorized()
+      throw new Error('Session expired. Please log in again.')
+    }
     if (!res.ok) {
       const text = await res.text()
       throw new Error(`Upload error ${res.status}: ${text}`)
     }
     return res.json()
   })
+}
 
 // Students
 export const getStudentMastery = (studentId) =>

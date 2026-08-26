@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from database import engine, Base
 from routers import activities, answers
+from routers.auth import router as auth_router
 from routers.tutor import router as tutor_router
 from routers.review import router as review_router
 from routers.materials import router as materials_router
@@ -34,6 +35,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
 app.include_router(activities.router)
 app.include_router(answers.router)
 app.include_router(tutor_router)

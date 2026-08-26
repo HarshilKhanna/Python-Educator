@@ -13,7 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from database import get_db
-from models import Mastery, AdaptationEvent, PendingAdaptation
+from dependencies import require_auth
+from models import Mastery, AdaptationEvent, PendingAdaptation, User
 
 router = APIRouter(prefix="/students", tags=["Students"])
 
@@ -53,15 +54,26 @@ class StudentMasteryResponse(BaseModel):
 async def get_student_mastery(
     student_id: str,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth),
 ):
     """
     Returns per-topic mastery state and last 10 adaptation events with reasons.
+
+    Authorization:
+    - Students may only read their own mastery (student_id must match token).
+    - Instructors may read any student's mastery.
 
     Reasons are sourced from the Pedagogical Agent's recommendation stored in
     pending_adaptations — matched by student_id and topic_id/timestamp proximity.
     This gives instructors a human-readable explanation of *why* the system
     recommended what it did, not just *what* it did.
     """
+    # Cross-student authorization gate
+    if current_user.role == "student" and current_user.id != student_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Students may only access their own mastery data.",
+        )
     # 1. Mastery rows
     stmt = select(Mastery).where(Mastery.student_id == student_id).order_by(
         Mastery.last_updated.desc()

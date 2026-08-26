@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/activity.dart';
 import '../services/api_client.dart';
+import '../services/auth_service.dart';
 import '../services/offline_queue.dart';
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -24,6 +25,11 @@ class ActivitySessionState {
   /// True if the last submission is queued offline
   final bool isOffline;
 
+  /// True if the offline queue attempted to sync but the token is expired.
+  /// When set, the UI should navigate to LoginScreen for re-authentication.
+  /// Queued answers are NOT lost — they drain once the user logs back in.
+  final bool needsRelogin;
+
   const ActivitySessionState({
     this.activities = const [],
     this.currentIndex = 0,
@@ -34,6 +40,7 @@ class ActivitySessionState {
     this.streak = 0,
     this.mastery = 0.0,
     this.isOffline = false,
+    this.needsRelogin = false,
   });
 
   // ── Derived state ──────────────────────────────────────────────────────────
@@ -67,6 +74,7 @@ class ActivitySessionState {
     int? streak,
     double? mastery,
     bool? isOffline,
+    bool? needsRelogin,
   }) {
     return ActivitySessionState(
       activities: activities ?? this.activities,
@@ -79,6 +87,7 @@ class ActivitySessionState {
       streak: streak ?? this.streak,
       mastery: mastery ?? this.mastery,
       isOffline: isOffline ?? this.isOffline,
+      needsRelogin: needsRelogin ?? this.needsRelogin,
     );
   }
 }
@@ -107,13 +116,18 @@ class ActivitySessionNotifier extends Notifier<ActivitySessionState> {
       final activities = await apiClient.fetchActivities(topicId);
       
       // Also try to sync any offline queue when we successfully connect
-      await offlineQueue.syncQueue();
+      await offlineQueue.syncQueue(
+        onTokenExpired: _handleTokenExpired,
+      );
       
       state = ActivitySessionState(
         activities: activities,
         currentIndex: 0,
         isLoading: false,
       );
+    } on AuthException {
+      // Session expired — signal the UI to navigate to LoginScreen
+      state = state.copyWith(isLoading: false, needsRelogin: true);
     } catch (e) {
       state = ActivitySessionState(isLoading: false, error: 'Failed to load activities: $e');
     }
@@ -122,6 +136,11 @@ class ActivitySessionNotifier extends Notifier<ActivitySessionState> {
   /// Surfaced to the UI on asset-loading failure.
   void setError(String message) {
     state = ActivitySessionState(isLoading: false, error: message);
+  }
+
+  /// Clear the re-login flag (called after the user has logged back in).
+  void clearReloginFlag() {
+    state = state.copyWith(needsRelogin: false);
   }
 
   /// Lock-once: only the first tap registers.
@@ -148,23 +167,46 @@ class ActivitySessionNotifier extends Notifier<ActivitySessionState> {
   Future<void> _submitAnswerAsync(String activityId, String answer) async {
     try {
       final newMastery = await apiClient.submitAnswer(
-        studentId: 'student_123', // Hardcoded for prototype
+        // student_id removed — backend derives identity from the JWT token
         activityId: activityId,
         submittedAnswer: answer,
       );
       state = state.copyWith(mastery: newMastery, isOffline: false);
       
       // We are online, maybe sync queue
-      await offlineQueue.syncQueue();
-    } catch (e) {
-      // Offline or network error -> queue it
+      await offlineQueue.syncQueue(
+        onTokenExpired: _handleTokenExpired,
+      );
+    } on AuthException {
+      // Session expired — surface re-login prompt, queue the answer
+      await _queueAndSignalExpiry(activityId, answer);
+    } catch (_) {
+      // Offline or other network error — queue it
+      final token = await authService.getToken();
       await offlineQueue.enqueueAnswer(
-        studentId: 'student_123',
         activityId: activityId,
         submittedAnswer: answer,
+        authToken: token,
       );
       state = state.copyWith(isOffline: true);
     }
+  }
+
+  Future<void> _queueAndSignalExpiry(String activityId, String answer) async {
+    // Preserve the answer in the queue before clearing the token
+    final token = await authService.getToken();
+    await offlineQueue.enqueueAnswer(
+      activityId: activityId,
+      submittedAnswer: answer,
+      authToken: token, // may already be expired but is stored for future retry
+    );
+    _handleTokenExpired();
+  }
+
+  void _handleTokenExpired() {
+    // Signal the UI that re-login is required.
+    // Queued answers are safe — they won't be dropped.
+    state = state.copyWith(isOffline: true, needsRelogin: true);
   }
 
   /// Advance to the next activity, or mark session complete if at the end.
@@ -189,6 +231,7 @@ class ActivitySessionNotifier extends Notifier<ActivitySessionState> {
       streak: 0,
       mastery: 0.0,
       isOffline: false,
+      needsRelogin: false,
     );
   }
 }

@@ -18,7 +18,7 @@ class ActivityResponse(BaseModel):
     source_section: SourceSection
 
 class AnswerSubmission(BaseModel):
-    student_id: str
+    # student_id intentionally removed — derived from the authenticated JWT
     activity_id: str
     submitted_answer: str
 

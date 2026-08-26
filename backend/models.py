@@ -1,8 +1,26 @@
+import uuid
 from datetime import datetime
 from sqlalchemy import Column, String, Float, Integer, JSON, DateTime, ForeignKey, Index, Text
 from sqlalchemy.sql import func
 from pgvector.sqlalchemy import Vector
 from database import Base
+
+
+class User(Base):
+    """
+    Registered user account.
+
+    role: 'student' | 'instructor'
+    id is a UUID string used as the canonical student identifier in all
+    learner-model tables (Mastery, AdaptationEvent, AuditLog, PendingAdaptation).
+    """
+    __tablename__ = "users"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    email = Column(String, nullable=False, unique=True, index=True)
+    password_hash = Column(String, nullable=False)
+    role = Column(String, nullable=False, default="student")  # 'student' | 'instructor'
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class Mastery(Base):
     """

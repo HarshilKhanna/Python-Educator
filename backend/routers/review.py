@@ -14,7 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from database import get_db
-from models import PendingAdaptation
+from dependencies import require_role
+from models import PendingAdaptation, User
 from services.learner_model import LearnerModelService
 
 router = APIRouter(prefix="/review", tags=["Review"])
@@ -32,7 +33,10 @@ class PendingAdaptationSchema(BaseModel):
 
 
 @router.get("/pending", response_model=list[PendingAdaptationSchema])
-async def list_pending(db: AsyncSession = Depends(get_db)):
+async def list_pending(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role("instructor")),
+):
     """Return all pending (not yet reviewed) adaptation recommendations."""
     stmt = select(PendingAdaptation).where(PendingAdaptation.status == "pending").order_by(
         PendingAdaptation.created_at.asc()
@@ -56,6 +60,7 @@ async def list_pending(db: AsyncSession = Depends(get_db)):
 async def approve_adaptation(
     adaptation_id: int,
     db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role("instructor")),
 ):
     """
     Approve a pending adaptation.
@@ -109,6 +114,7 @@ async def reject_adaptation(
     adaptation_id: int,
     body: RejectRequest = RejectRequest(),
     db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_role("instructor")),
 ):
     """Reject a pending adaptation — no state change to mastery.
     

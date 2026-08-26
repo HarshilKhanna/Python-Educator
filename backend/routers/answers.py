@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from schemas import AnswerSubmission, AnswerResponse
 from database import get_db
+from dependencies import require_auth
+from models import User
 from services.learner_model import LearnerModelService
 
 router = APIRouter(prefix="/answer", tags=["Answers"])
@@ -34,8 +36,17 @@ def _find_activity(activity_id: str):
 @router.post("", response_model=AnswerResponse)
 async def submit_answer(
     submission: AnswerSubmission,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth),
 ):
+    """
+    Submit an answer for the authenticated student.
+
+    student_id is derived from the JWT — the client cannot supply or override it.
+    """
+    # Identity comes from the token, not the request body
+    student_id = current_user.id
+
     # 1. Lookup activity for correctness
     activity = _find_activity(submission.activity_id)
     if not activity:
@@ -62,7 +73,7 @@ async def submit_answer(
         updated_mastery = await LearnerModelService.record_update(
             session=db,
             source="activity_submission",
-            student_id=submission.student_id,
+            student_id=student_id,
             topic_id=topic_id,
             signal=signal,
             delta=delta

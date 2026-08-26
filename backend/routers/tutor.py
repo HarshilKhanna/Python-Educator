@@ -19,7 +19,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from database import get_db
-from models import Mastery, PendingAdaptation
+from dependencies import require_auth
+from models import Mastery, PendingAdaptation, User
 from agents.orchestrator import orchestrator_graph, set_session
 
 router = APIRouter(prefix="/tutor", tags=["Tutor"])
@@ -30,7 +31,7 @@ router = APIRouter(prefix="/tutor", tags=["Tutor"])
 # ---------------------------------------------------------------------------
 
 class InteractRequest(BaseModel):
-    student_id: str
+    # student_id intentionally removed — derived from the authenticated JWT
     message: str
     topic_id: str | None = None
 
@@ -92,19 +93,24 @@ def _needs_review(
 async def tutor_interact(
     req: InteractRequest,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth),
 ) -> InteractResponse:
     """
     Route a student turn through the Orchestrator.
 
+    student_id is derived from the JWT — the client cannot supply or override it.
     - Activity requests → Pedagogical Agent → (maybe) pending_adaptations queue
     - Free-text questions → Technical Agent → grounded answer
     """
+    # Identity comes from the token
+    student_id = current_user.id
+
     # Inject DB session into the orchestrator
     set_session(db)
 
     try:
         final_state = await orchestrator_graph.ainvoke({
-            "student_id": req.student_id,
+            "student_id": student_id,
             "message": req.message,
             "topic_id": req.topic_id,
             "intent": None,
@@ -124,13 +130,13 @@ async def tutor_interact(
         next_activity = ped.get("next_activity_type")
         reason = ped.get("reason", "")
 
-        current_topic = await _get_current_topic(req.student_id, db)
+        current_topic = await _get_current_topic(student_id, db)
         needs_review = _needs_review(current_topic, next_topic, next_activity)
 
         if needs_review:
             # Write to the pending queue; don't auto-apply
             pending = PendingAdaptation(
-                student_id=req.student_id,
+                student_id=student_id,
                 next_topic_id=next_topic,
                 next_activity_type=next_activity,
                 reason=reason,

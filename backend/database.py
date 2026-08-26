@@ -1,14 +1,21 @@
+import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import text
 
-# Use an async Postgres URL for real usage, e.g., "postgresql+asyncpg://user:pass@localhost/db"
-# For testing and local development without a DB running, we'll configure it via environment variables.
-# But since this is a prototype, we'll default to a local Postgres instance.
+# Read from environment; fall back to SQLite for local dev/tests so asyncpg
+# is not required when there's no Postgres instance running.
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "sqlite+aiosqlite:///./local.db",
+)
 
-DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/postgres"
-
-engine = create_async_engine(DATABASE_URL, echo=False)
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    # connect_args only needed for SQLite (disables same-thread check)
+    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {},
+)
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,
     class_=AsyncSession,
@@ -31,6 +38,9 @@ _MIGRATIONS = [
     "ALTER TABLE chunks ADD COLUMN IF NOT EXISTS uploaded_at TIMESTAMPTZ",
     # Phase 12: rejection reason on pending adaptations
     "ALTER TABLE pending_adaptations ADD COLUMN IF NOT EXISTS review_note VARCHAR",
+    # Phase 14: users table (created via create_all, but ensure columns exist on upgrade)
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR DEFAULT 'student' NOT NULL",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()",
 ]
 
 

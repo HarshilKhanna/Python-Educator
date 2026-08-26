@@ -1,6 +1,9 @@
 """
 POST /materials/upload  — instructor file ingestion
 GET  /curriculum/topics — ordered topic list from the curriculum DAG
+
+Both endpoints require an instructor JWT. The dev-only INSTRUCTOR_TOKEN stub
+has been removed entirely in Phase 14.2.
 """
 
 from __future__ import annotations
@@ -9,27 +12,28 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
+from dependencies import require_role
+from models import User
 from rag import ingest_upload
 from agents.pedagogical import CURRICULUM_ORDER
 
 router = APIRouter(tags=["Materials"])
-
-# Stub instructor token — clearly NOT production auth.
-# In a pilot this would be replaced by real JWT/RBAC.
-INSTRUCTOR_TOKEN = "dev-token-instructor"
 
 
 @router.post("/materials/upload")
 async def upload_material(
     file: UploadFile = File(...),
     topic_id: str = Form(...),
-    uploaded_by: str = Form(default="instructor"),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("instructor")),
 ):
     """
     Accept a PDF, DOCX, or Markdown file from an instructor.
     Extracts text, chunks it, embeds each chunk, and stores with
     source_type='instructor_upload'.
+
+    uploaded_by is derived from the authenticated user's email — not a
+    client-supplied form field — so attribution cannot be spoofed.
 
     Returns chunk count and confirmation metadata.
     """
@@ -54,6 +58,9 @@ async def upload_material(
     if not file_bytes:
         raise HTTPException(status_code=400, detail="Empty file.")
 
+    # Derive attribution from the authenticated user, not the request body
+    uploaded_by = current_user.email
+
     try:
         chunk_count = await ingest_upload(
             session=db,
@@ -75,7 +82,9 @@ async def upload_material(
 
 
 @router.get("/curriculum/topics")
-async def get_curriculum_topics():
+async def get_curriculum_topics(
+    _: User = Depends(require_role("instructor")),
+):
     """
     Return the ordered list of curriculum topic IDs from the prerequisite DAG.
     Used by the instructor dashboard's topic_id dropdown.
