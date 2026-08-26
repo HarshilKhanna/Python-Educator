@@ -3,7 +3,8 @@ backend/.venv/
 backend/__pycache__/
 backend/*.pyc
 backend/.env
-backend/.env.*
+backend/.env.*          # covers .env.dev / .env.staging / .env.pilot
+backend/test.db         # SQLite test database — never commit
 
 # Flutter / App
 app/.dart_tool/

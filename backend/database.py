@@ -1,21 +1,24 @@
+"""
+database.py — Async SQLAlchemy engine and session factory.
+
+Schema is managed by Alembic (run `alembic upgrade head` before starting the server).
+This module no longer runs inline migrations on every request.
+"""
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import declarative_base
-from sqlalchemy import text
 
-# Read from environment; fall back to SQLite for local dev/tests so asyncpg
-# is not required when there's no Postgres instance running.
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "sqlite+aiosqlite:///./local.db",
-)
+import config  # noqa: F401 — ensures .env is loaded before reading DATABASE_URL
+
+DATABASE_URL: str = config.DATABASE_URL
 
 engine = create_async_engine(
     DATABASE_URL,
     echo=False,
-    # connect_args only needed for SQLite (disables same-thread check)
+    # connect_args only needed for SQLite (test environments)
     connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {},
 )
+
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,
     class_=AsyncSession,
@@ -24,53 +27,8 @@ AsyncSessionLocal = async_sessionmaker(
 
 Base = declarative_base()
 
-# ---------------------------------------------------------------------------
-# Schema migrations (idempotent ADD COLUMN IF NOT EXISTS)
-# Run once at startup before any request is handled.
-# Alembic is the right tool at production scale; for the research prototype
-# we keep it simple with explicit ALTER TABLE statements.
-# ---------------------------------------------------------------------------
-
-_MIGRATIONS = [
-    # Phase 11: source provenance on chunks
-    "ALTER TABLE chunks ADD COLUMN IF NOT EXISTS source_type VARCHAR DEFAULT 'handbook' NOT NULL",
-    "ALTER TABLE chunks ADD COLUMN IF NOT EXISTS uploaded_by VARCHAR",
-    "ALTER TABLE chunks ADD COLUMN IF NOT EXISTS uploaded_at TIMESTAMPTZ",
-    # Phase 12: rejection reason on pending adaptations
-    "ALTER TABLE pending_adaptations ADD COLUMN IF NOT EXISTS review_note VARCHAR",
-    # Phase 14: users table (created via create_all, but ensure columns exist on upgrade)
-    "ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR DEFAULT 'student' NOT NULL",
-    "ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()",
-]
-
-
-async def run_migrations(conn) -> None:
-    """Run idempotent column-level migrations. Safe to call every startup.
-    
-    Migrations are skipped for SQLite (used in tests) — SQLite's ALTER TABLE
-    has limited syntax and the test fixtures use create_all() instead.
-    """
-    # Skip for SQLite (test environments)
-    dialect_name = conn.engine.dialect.name if hasattr(conn, "engine") else ""
-    if not dialect_name:
-        try:
-            dialect_name = conn.dialect.name
-        except Exception:
-            dialect_name = ""
-    if "sqlite" in dialect_name.lower():
-        return
-
-    # Enable pgvector first
-    await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
-    for sql in _MIGRATIONS:
-        try:
-            await conn.execute(text(sql))
-        except Exception:
-            pass  # table may not exist yet on first boot — create_all handles it
-
 
 async def get_db():
-    async with engine.begin() as conn:
-        await run_migrations(conn)
+    """FastAPI dependency — yields an async database session."""
     async with AsyncSessionLocal() as session:
         yield session

@@ -29,8 +29,10 @@ from tests.conftest import _HttpSession as TestSession
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_student_mastery_endpoint_returns_correct_shape():
+async def test_student_mastery_endpoint_returns_correct_shape(instructor_auth):
     """GET /students/{id}/mastery returns mastery list and recent_events."""
+    _, token = instructor_auth
+    headers = {"Authorization": f"Bearer {token}"}
     student = "test_student_mastery"
 
     async with TestSession() as session:
@@ -48,7 +50,7 @@ async def test_student_mastery_endpoint_returns_correct_shape():
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get(f"/students/{student}/mastery")
+        resp = await client.get(f"/students/{student}/mastery", headers=headers)
 
     assert resp.status_code == 200
     data = resp.json()
@@ -68,10 +70,12 @@ async def test_student_mastery_endpoint_returns_correct_shape():
 
 
 @pytest.mark.asyncio
-async def test_student_mastery_endpoint_returns_empty_for_unknown_student():
+async def test_student_mastery_endpoint_returns_empty_for_unknown_student(instructor_auth):
+    _, token = instructor_auth
+    headers = {"Authorization": f"Bearer {token}"}
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/students/nonexistent_xyz/mastery")
+        resp = await client.get("/students/nonexistent_xyz/mastery", headers=headers)
 
     assert resp.status_code == 200
     data = resp.json()
@@ -84,12 +88,14 @@ async def test_student_mastery_endpoint_returns_empty_for_unknown_student():
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_reject_with_reason_does_not_touch_mastery():
+async def test_reject_with_reason_does_not_touch_mastery(instructor_auth):
     """
     Rejecting a pending adaptation must:
     1. Mark it as rejected with the provided reason
     2. NOT create any AdaptationEvent or change Mastery rows
     """
+    _, token = instructor_auth
+    headers = {"Authorization": f"Bearer {token}"}
     student = "test_reject_student"
 
     async with TestSession() as session:
@@ -107,6 +113,7 @@ async def test_reject_with_reason_does_not_touch_mastery():
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         resp = await client.post(
             f"/review/{pending_id}/reject",
+            headers=headers,
             json={"reason": "Student actually needs more examples first"},
         )
 

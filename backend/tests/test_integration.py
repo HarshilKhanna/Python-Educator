@@ -14,7 +14,9 @@ from tests.conftest import _HttpSession
 
 
 @pytest.mark.asyncio
-async def test_post_answer_integration(_setup_http_db):
+async def test_post_answer_integration(_setup_http_db, student_auth):
+    student_id, token = student_auth
+    headers = {"Authorization": f"Bearer {token}"}
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         
@@ -29,10 +31,10 @@ async def test_post_answer_integration(_setup_http_db):
         correct_ans = activity["correct_answer"]
         incorrect_ans = "some_wrong_answer"
         
-        student_id = "integration_student_1"
+        student_id = student_id  # use the auth'd student's UUID
         
         # --- Correct Answer ---
-        res1 = await client.post("/answer", json={
+        res1 = await client.post("/answer", headers=headers, json={
             "student_id": student_id,
             "activity_id": act_id,
             "submitted_answer": correct_ans
@@ -44,7 +46,7 @@ async def test_post_answer_integration(_setup_http_db):
         assert mastery1 > 0.0
         
         # --- Incorrect Answer ---
-        res2 = await client.post("/answer", json={
+        res2 = await client.post("/answer", headers=headers, json={
             "student_id": student_id,
             "activity_id": act_id,
             "submitted_answer": incorrect_ans

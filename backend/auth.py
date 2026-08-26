@@ -2,27 +2,28 @@
 auth.py — JWT signing/verification and password hashing utilities.
 
 Uses python-jose for JWT (HS256) and passlib[bcrypt] for password hashing.
-Secret key and token lifetime are read from environment variables with safe
-defaults for development. Set SECRET_KEY in production.
+Secret key and token lifetime are read from config.py, which in turn loads
+the appropriate .env.{APP_ENV} file. Set SECRET_KEY in each environment file.
 """
 from __future__ import annotations
 
-import os
 from datetime import datetime, timedelta, timezone
 
 from jose import JWTError, jwt
 import bcrypt
 
+import config
+
 # ---------------------------------------------------------------------------
-# Configuration — override via environment variables
+# Configuration — sourced from config.py (reads .env.{APP_ENV})
 # ---------------------------------------------------------------------------
 
-SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production-please")
+SECRET_KEY: str = config.SECRET_KEY
 ALGORITHM: str = "HS256"
 
-# Role-specific lifetimes (override with env vars)
-STUDENT_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("STUDENT_TOKEN_EXPIRE_MINUTES", "480"))   # 8 hours
-INSTRUCTOR_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("INSTRUCTOR_TOKEN_EXPIRE_MINUTES", "240"))  # 4 hours
+# Role-specific lifetimes
+STUDENT_TOKEN_EXPIRE_MINUTES: int = config.STUDENT_TOKEN_EXPIRE_MINUTES
+INSTRUCTOR_TOKEN_EXPIRE_MINUTES: int = config.INSTRUCTOR_TOKEN_EXPIRE_MINUTES
 
 # ---------------------------------------------------------------------------
 # Password hashing

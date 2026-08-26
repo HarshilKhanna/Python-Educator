@@ -1,0 +1,62 @@
+# =============================================================================
+# docker-compose.yml — Python Educator full stack
+#
+# Bring up with:  docker-compose up
+# Seed data with: docker-compose exec backend python seed.py
+# Tear down:      docker-compose down -v   (removes volumes too)
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # db — PostgreSQL 16 with pgvector pre-installed
+  # ---------------------------------------------------------------------------
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: python_educator
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"   # exposed for local tooling (psql, pgAdmin, etc.)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d python_educator"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # backend — FastAPI application
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.dev       # gitignored; copy .env.example and fill in values
+    environment:
+      # Override DATABASE_URL to use the Docker internal hostname 'db'
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/python_educator
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      # Instructor-uploaded materials persist across container restarts
+      - ./content/uploads:/app/../content/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/ready || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  postgres_data:
+    driver: local
