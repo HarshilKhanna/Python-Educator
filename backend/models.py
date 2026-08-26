@@ -75,7 +75,7 @@ class AuditLog(Base):
 
 class Chunk(Base):
     """
-    A chunk of text from the curriculum handbook.
+    A chunk of text from the curriculum handbook or an instructor upload.
     """
     __tablename__ = "chunks"
     
@@ -84,5 +84,43 @@ class Chunk(Base):
     heading = Column(String, nullable=False)
     content = Column(Text, nullable=False)
     
+    # Source provenance
+    # Values: 'handbook' | 'instructor_upload'
+    source_type = Column(String, nullable=False, default="handbook", server_default="handbook", index=True)
+    uploaded_by = Column(String, nullable=True)   # only set for instructor_upload
+    uploaded_at = Column(DateTime(timezone=True), nullable=True)
+    
     # 384 dimensions for all-MiniLM-L6-v2
     embedding = Column(Vector(384))
+
+
+class PendingAdaptation(Base):
+    """
+    Human-in-the-loop review queue (Phase 10).
+
+    When the Pedagogical Agent recommends anything other than 'continue with
+    same topic at same difficulty' (i.e. a topic change, remediation branch,
+    or difficulty change), the recommendation is written here instead of
+    auto-applied.
+
+    Approving an item via POST /review/{id}/approve triggers the actual state
+    change through LearnerModelService.record_update as normal.
+    """
+    __tablename__ = "pending_adaptations"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    student_id = Column(String, nullable=False, index=True)
+
+    # The Pedagogical Agent's recommendation
+    next_topic_id = Column(String, nullable=False)
+    next_activity_type = Column(String, nullable=False)
+    reason = Column(String, nullable=False)
+
+    # Status lifecycle: pending → approved | rejected
+    status = Column(String, nullable=False, default="pending", index=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    # Optional human-readable note from the reviewer (used for rejections)
+    review_note = Column(String, nullable=True)
+

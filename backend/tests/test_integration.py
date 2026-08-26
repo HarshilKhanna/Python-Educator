@@ -5,44 +5,20 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from sqlalchemy.future import select
 
 from main import app
-from database import get_db
-from models import Base, Mastery, AdaptationEvent, AuditLog
+from models import Mastery, AdaptationEvent, AuditLog
 
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
-
-engine = create_async_engine(TEST_DATABASE_URL, echo=False)
-TestingSessionLocal = async_sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
-
-async def override_get_db():
-    async with TestingSessionLocal() as session:
-        yield session
-
-app.dependency_overrides[get_db] = override_get_db
-
-@pytest_asyncio.fixture(scope="function")
-async def setup_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+# conftest.py manages the app.dependency_overrides and table creation.
+# We import conftest's shared session factory so our DB assertions hit
+# the same in-memory DB that the HTTP layer writes to.
+from tests.conftest import _HttpSession
 
 
 @pytest.mark.asyncio
-async def test_post_answer_integration(setup_db):
+async def test_post_answer_integration(_setup_http_db):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         
-        # 1. Submit a correct answer (assuming act_predict_1 exists in loops.json and has answer "2")
-        # Let's hit the endpoint with an activity we know from our generated loops.json
-        # E.g. activity_id: "loops_predict_1", correct_answer might be "2" (Wait, I need to check the actual JSON)
-        # Let's mock the _find_activity in answers router, or just use a real one.
-        # Let's just fetch activities for loops to find a real ID and answer.
-        
+        # Fetch a real activity from loops.json
         response = await client.get("/activities?topic_id=loops")
         assert response.status_code == 200
         activities = response.json()
@@ -79,10 +55,12 @@ async def test_post_answer_integration(setup_db):
         mastery2 = data2["mastery"]
         assert mastery2 < mastery1  # Decreased due to wrong answer
         
-        # --- DB Verification ---
-        async with TestingSessionLocal() as session:
+        # --- DB Verification (same session DB the HTTP layer used) ---
+        async with _HttpSession() as session:
             # Verify AdaptationEvent (should be 2)
-            stmt = select(AdaptationEvent).where(AdaptationEvent.student_id == student_id).order_by(AdaptationEvent.id.asc())
+            stmt = select(AdaptationEvent).where(
+                AdaptationEvent.student_id == student_id
+            ).order_by(AdaptationEvent.id.asc())
             result = await session.execute(stmt)
             events = result.scalars().all()
             assert len(events) == 2
@@ -96,7 +74,9 @@ async def test_post_answer_integration(setup_db):
             assert mastery.mastery_level == mastery2
             
             # Verify AuditLog (should be 2)
-            stmt = select(AuditLog).where(AuditLog.student_id == student_id).order_by(AuditLog.id.asc())
+            stmt = select(AuditLog).where(
+                AuditLog.student_id == student_id
+            ).order_by(AuditLog.id.asc())
             result = await session.execute(stmt)
             logs = result.scalars().all()
             assert len(logs) == 2
@@ -108,3 +88,4 @@ async def test_post_answer_integration(setup_db):
             assert logs[1].adaptation_event_id == events[1].id
             assert logs[1].before_state["mastery_level"] == mastery1
             assert logs[1].after_state["mastery_level"] == mastery2
+
