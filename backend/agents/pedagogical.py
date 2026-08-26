@@ -1,5 +1,5 @@
 """
-Pedagogical Agent — Phase 8
+Pedagogical Agent — Phase 8 / Phase 19 update
 
 A single LangGraph node function (testable in isolation).
 
@@ -61,12 +61,17 @@ class PedagogicalDecision:
     next_topic_id: str
     next_activity_type: str
     reason: str
+    # 0.0–1.0. The agent sets this to < 0.5 when it is uncertain about its
+    # recommendation (e.g. edge-case curriculum states). The risk policy uses
+    # this to escalate otherwise-medium recommendations to 'high'.
+    confidence: float = 1.0
 
-    def to_dict(self) -> dict[str, str]:
+    def to_dict(self) -> dict:
         return {
             "next_topic_id": self.next_topic_id,
             "next_activity_type": self.next_activity_type,
             "reason": self.reason,
+            "confidence": self.confidence,
         }
 
 
@@ -167,10 +172,13 @@ async def pedagogical_agent_node(
                 reason=reason,
             )
 
-    # 4. All topics mastered → loop back to the last topic for advanced practice
+    # 4. All topics mastered → loop back to the last topic for advanced practice.
+    # Confidence is set lower here because this is an unusual state; the risk
+    # policy will treat it as medium-risk, pending instructor config.
     last_topic = CURRICULUM_ORDER[-1]
     return PedagogicalDecision(
         next_topic_id=last_topic,
         next_activity_type="predict_output",
         reason="All curriculum topics mastered. Revisiting final topic for advanced practice.",
+        confidence=0.6,
     )

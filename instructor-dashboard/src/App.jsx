@@ -3,6 +3,7 @@ import { Routes, Route, NavLink } from 'react-router-dom'
 import ReviewQueue from './pages/ReviewQueue'
 import UploadMaterials from './pages/UploadMaterials'
 import StudentMastery from './pages/StudentMastery'
+import Monitoring from './pages/Monitoring'
 import Login from './pages/Login'
 
 function useAuth() {
@@ -53,6 +54,12 @@ export default function App() {
               Student Mastery
             </NavLink>
           </li>
+          <li>
+            <NavLink to="/monitoring" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+              <span className="nav-icon">📊</span>
+              Monitoring
+            </NavLink>
+          </li>
         </ul>
         {/* Logout button — replaces the dev-auth stub note */}
         <button
@@ -69,6 +76,7 @@ export default function App() {
           <Route path="/upload" element={<UploadMaterials />} />
           <Route path="/student" element={<StudentMastery />} />
           <Route path="/student/:id" element={<StudentMastery />} />
+          <Route path="/monitoring" element={<Monitoring />} />
         </Routes>
       </main>
     </div>

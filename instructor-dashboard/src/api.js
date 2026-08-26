@@ -90,3 +90,20 @@ export const uploadMaterial = (formData) => {
 // Students
 export const getStudentMastery = (studentId) =>
   request(`/students/${studentId}/mastery`)
+
+// Monitoring — Phase 21
+export const getMonitoringStats = (windowHours = 24) =>
+  request(`/monitoring/stats?window_hours=${windowHours}`)
+
+export const getAlerts = () => request('/monitoring/alerts')
+
+export const resolveAlert = (id) =>
+  request(`/monitoring/alerts/${id}/resolve`, { method: 'POST' })
+
+export const getKillSwitch = () => request('/monitoring/kill-switch')
+
+export const setKillSwitch = (active) =>
+  request('/monitoring/kill-switch', {
+    method: 'POST',
+    body: JSON.stringify({ active }),
+  })

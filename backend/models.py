@@ -64,6 +64,10 @@ class AdaptationEvent(Base):
     
     # The change applied to mastery. e.g., +0.1, -0.05
     delta = Column(Float, nullable=False, default=0.0)
+
+    # Phase 20: risk tier that allowed this event ('low' | 'medium' | 'high' | None).
+    # None for events that came through the review queue (not auto-applied).
+    risk_tier = Column(String, nullable=True)
     
     __table_args__ = (
         Index('idx_adaptation_student_topic', 'student_id', 'topic_id'),
@@ -142,3 +146,50 @@ class PendingAdaptation(Base):
     # Optional human-readable note from the reviewer (used for rejections)
     review_note = Column(String, nullable=True)
 
+
+class SystemSettings(Base):
+    """
+    Key-value store for runtime-configurable settings.
+    Currently used for the Phase 20 kill-switch so instructors can toggle it
+    from the dashboard without a code deploy or container restart.
+
+    key: 'auto_apply_kill_switch'
+    value: JSON — e.g. {"enabled": true}
+    """
+    __tablename__ = "system_settings"
+
+    key = Column(String, primary_key=True)
+    value = Column(JSON, nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class AdaptationAlert(Base):
+    """
+    Phase 21 anomaly-detection flags.
+
+    Populated by MonitoringService when heuristic thresholds are exceeded.
+    Surfaced in the instructor dashboard and resolved manually.
+
+    alert_type values:
+      'thrashing'  — one student received >= 3 auto-applied topic-advancement
+                     events within 10 minutes
+      'rate_spike' — auto-apply rate for a signal type spiked > 3x its 7-day
+                     trailing baseline system-wide
+    """
+    __tablename__ = "adaptation_alerts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    # 'thrashing' | 'rate_spike'
+    alert_type = Column(String, nullable=False, index=True)
+
+    # Set for student-specific alerts (thrashing); None for system-wide alerts
+    student_id = Column(String, nullable=True, index=True)
+
+    # Machine-readable detail payload (thresholds, counts, etc.)
+    detail = Column(JSON, nullable=False)
+
+    # False until an instructor acknowledges/resolves the alert
+    resolved = Column(Integer, nullable=False, default=0)  # 0=open, 1=resolved
+    resolved_at = Column(DateTime(timezone=True), nullable=True)

@@ -16,11 +16,16 @@ class LearnerModelService:
         student_id: str,
         topic_id: str,
         signal: str,
-        delta: float
+        delta: float,
+        risk_tier: str | None = None,
     ) -> float:
         """
         Appends an AdaptationEvent, updates the Mastery table, and logs the transaction.
         Returns the new mastery value.
+
+        risk_tier: the risk classification that allowed this write
+          ('low' | 'medium' | 'high' | None).  None for events that come through
+          the human review queue rather than auto-apply.
         """
         # 1. Fetch current mastery state
         stmt = select(Mastery).where(Mastery.student_id == student_id, Mastery.topic_id == topic_id)
@@ -56,7 +61,8 @@ class LearnerModelService:
             topic_id=topic_id,
             source=source,
             signal=signal,
-            delta=delta
+            delta=delta,
+            risk_tier=risk_tier,
         )
         session.add(event)
         

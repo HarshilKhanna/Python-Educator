@@ -1,12 +1,17 @@
 """
-POST /tutor/interact — Phase 9 endpoint
+POST /tutor/interact — Phase 9 endpoint, Phase 20 update
 
 Accepts a student turn (student_id + message + optional topic_id).
 Routes through the Orchestrator graph.
 
-Phase 10 guardrail: if the Pedagogical Agent recommends a topic change or
-remediation (anything other than the student's current topic), the decision
-is written to pending_adaptations for human review rather than auto-applied.
+Phase 20 risk-tiering write path:
+  - Kill-switch active (env var OR DB setting) → everything to pending_adaptations
+  - 'low' risk → LearnerModelService.record_update, source="pedagogical_agent_auto"
+  - 'medium' risk, high confidence → LearnerModelService.record_update, same source
+  - 'medium' risk, low confidence → classified 'high' by classify_risk → pending
+  - 'high' risk → pending_adaptations (unchanged from Phase 10 behavior)
+
+LearnerModelService.record_update remains the ONLY write path in both branches.
 """
 
 from __future__ import annotations
@@ -18,10 +23,14 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+import config
 from database import get_db
 from dependencies import require_auth
-from models import Mastery, PendingAdaptation, User
+from models import Mastery, PendingAdaptation, SystemSettings, User
 from agents.orchestrator import orchestrator_graph, set_session
+from risk_policy import classify_risk
+from services.learner_model import LearnerModelService
+from services.monitoring import MonitoringService
 
 router = APIRouter(prefix="/tutor", tags=["Tutor"])
 
@@ -44,6 +53,9 @@ class InteractResponse(BaseModel):
     reason: str | None = None
     pending_review: bool = False
     pending_adaptation_id: int | None = None
+    # Phase 20: risk tier of this recommendation (always present for activity_request)
+    risk_tier: str | None = None
+    auto_applied: bool = False
     # For technical intent
     answer: str | None = None
     grounded: bool | None = None
@@ -53,9 +65,6 @@ class InteractResponse(BaseModel):
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-SAME_TOPIC_ACTIVITIES = {"predict_output", "fill_blank", "reorder_lines"}
-
 
 async def _get_current_topic(student_id: str, session: AsyncSession) -> str | None:
     """Return the topic the student most recently worked on (highest mastery update time)."""
@@ -67,22 +76,44 @@ async def _get_current_topic(student_id: str, session: AsyncSession) -> str | No
     return row.topic_id if row else None
 
 
-def _needs_review(
-    current_topic: str | None,
-    next_topic_id: str,
-    next_activity_type: str,
-) -> bool:
-    """
-    Returns True if the Pedagogical Agent's recommendation requires human review.
+async def _get_mastery_map(student_id: str, session: AsyncSession) -> dict[str, float]:
+    """Return {topic_id: mastery_level} for the student."""
+    stmt = select(Mastery).where(Mastery.student_id == student_id)
+    result = await session.execute(stmt)
+    rows = result.scalars().all()
+    return {row.topic_id: row.mastery_level for row in rows}
 
-    Any topic change or remediation signal (i.e. switching to a different topic
-    than the student is currently on) goes to the pending queue.
-    'Continue with same topic at same difficulty' does NOT need review.
+
+async def _kill_switch_active(session: AsyncSession) -> bool:
     """
-    if current_topic is None:
-        # Brand-new student — no review needed for the first topic
-        return False
-    return current_topic != next_topic_id
+    Return True if the kill-switch is enabled.
+
+    Checks the DB-backed SystemSettings first (allows live toggle from dashboard),
+    then falls back to the env-var config flag.  Either one being True is enough.
+    """
+    # DB setting takes priority (live toggle without restart)
+    try:
+        stmt = select(SystemSettings).where(SystemSettings.key == "auto_apply_kill_switch")
+        result = await session.execute(stmt)
+        row = result.scalar_one_or_none()
+        if row is not None:
+            val = row.value
+            # value is stored as JSON; can be a bool or the string "true"/"false"
+            if isinstance(val, bool):
+                if val:
+                    return True
+            elif str(val).lower() == "true":
+                return True
+    except Exception:
+        pass  # If the table doesn't exist yet, fall through to env var
+
+    return config.AUTO_APPLY_KILL_SWITCH
+
+
+# AUTO_APPLY_DELTA: small mastery nudge applied when a low/medium-risk
+# recommendation is auto-applied.  Same magnitude as the review-approval delta
+# so the two paths are comparable.
+AUTO_APPLY_DELTA = 0.05
 
 
 # ---------------------------------------------------------------------------
@@ -99,7 +130,7 @@ async def tutor_interact(
     Route a student turn through the Orchestrator.
 
     student_id is derived from the JWT — the client cannot supply or override it.
-    - Activity requests → Pedagogical Agent → (maybe) pending_adaptations queue
+    - Activity requests → Pedagogical Agent → risk-tiered write path
     - Free-text questions → Technical Agent → grounded answer
     """
     # Identity comes from the token
@@ -129,12 +160,72 @@ async def tutor_interact(
         next_topic = ped.get("next_topic_id")
         next_activity = ped.get("next_activity_type")
         reason = ped.get("reason", "")
+        confidence = ped.get("confidence", 1.0)
 
+        # Gather context for risk classification
         current_topic = await _get_current_topic(student_id, db)
-        needs_review = _needs_review(current_topic, next_topic, next_activity)
+        mastery_map = await _get_mastery_map(student_id, db)
 
-        if needs_review:
-            # Write to the pending queue; don't auto-apply
+        risk = classify_risk(
+            current_topic=current_topic,
+            next_topic_id=next_topic,
+            next_activity_type=next_activity,
+            confidence=confidence,
+            mastery_map=mastery_map,
+            confidence_threshold=config.CONFIDENCE_THRESHOLD,
+        )
+
+        # Check kill-switch (DB-backed first, then env var)
+        kill_switch = await _kill_switch_active(db)
+
+        # Decide: auto-apply or queue for review
+        if not kill_switch and risk in ("low", "medium"):
+            # -------------------------------------------------------
+            # AUTO-APPLY PATH
+            # LearnerModelService.record_update is the write path here
+            # (same as the review-approval path — no second entry point)
+            # -------------------------------------------------------
+            try:
+                await LearnerModelService.record_update(
+                    session=db,
+                    source="pedagogical_agent_auto",
+                    student_id=student_id,
+                    topic_id=next_topic,
+                    signal="auto_applied_advancement",
+                    delta=AUTO_APPLY_DELTA,
+                    risk_tier=risk,
+                )
+                await db.commit()
+            except Exception as e:
+                await db.rollback()
+                raise HTTPException(status_code=500, detail=f"Auto-apply error: {e}")
+
+            # Run anomaly checks after auto-apply (non-fatal — log and continue)
+            try:
+                await MonitoringService.check_and_store_anomalies(
+                    session=db,
+                    student_id=student_id,
+                    signal_type="auto_applied_advancement",
+                )
+                await db.commit()
+            except Exception:
+                pass  # Anomaly check failure must never block the student
+
+            return InteractResponse(
+                intent=intent,
+                next_topic_id=next_topic,
+                next_activity_type=next_activity,
+                reason=reason,
+                pending_review=False,
+                risk_tier=risk,
+                auto_applied=True,
+            )
+
+        else:
+            # -------------------------------------------------------
+            # REVIEW QUEUE PATH (unchanged from Phase 10)
+            # kill_switch active OR risk == 'high'
+            # -------------------------------------------------------
             pending = PendingAdaptation(
                 student_id=student_id,
                 next_topic_id=next_topic,
@@ -153,15 +244,9 @@ async def tutor_interact(
                 reason=reason,
                 pending_review=True,
                 pending_adaptation_id=pending.id,
+                risk_tier=risk,
+                auto_applied=False,
             )
-
-        return InteractResponse(
-            intent=intent,
-            next_topic_id=next_topic,
-            next_activity_type=next_activity,
-            reason=reason,
-            pending_review=False,
-        )
 
     # --- Technical path ---
     tech = final_state.get("technical_result", {})

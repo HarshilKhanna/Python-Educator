@@ -55,3 +55,19 @@ if APP_ENV != "dev" and SECRET_KEY == "dev-secret-key-change-in-production-pleas
         f"SECRET_KEY is still the development default in APP_ENV={APP_ENV!r}. "
         "Set a real SECRET_KEY in your environment file."
     )
+
+# ---------------------------------------------------------------------------
+# Phase 20 — Risk tiering & auto-approval
+# ---------------------------------------------------------------------------
+
+# When True, every recommendation goes to pending_adaptations regardless of
+# risk tier.  Set AUTO_APPLY_KILL_SWITCH=true in the environment (or toggle
+# from the dashboard via the SystemSettings DB-backed flag) to instantly revert
+# to full manual review without a code deploy.
+AUTO_APPLY_KILL_SWITCH: bool = (
+    os.getenv("AUTO_APPLY_KILL_SWITCH", "false").lower() == "true"
+)
+
+# Agent confidence below this value escalates the risk tier to 'high'.
+# Default 0.5 — agent must be at least 50% confident to allow auto-apply.
+CONFIDENCE_THRESHOLD: float = float(os.getenv("CONFIDENCE_THRESHOLD", "0.5"))

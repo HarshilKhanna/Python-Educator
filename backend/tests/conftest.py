@@ -22,7 +22,7 @@ import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from models import Base, Mastery, AdaptationEvent, AuditLog, PendingAdaptation, User
+from models import Base, Mastery, AdaptationEvent, AuditLog, PendingAdaptation, User, SystemSettings, AdaptationAlert
 from main import app
 from database import get_db
 from auth import create_access_token, hash_password

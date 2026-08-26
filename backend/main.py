@@ -26,6 +26,7 @@ from routers.tutor import router as tutor_router
 from routers.review import router as review_router
 from routers.materials import router as materials_router
 from routers.students import router as students_router
+from routers.monitoring import router as monitoring_router
 
 # ---------------------------------------------------------------------------
 # Logging setup — structured JSON to stdout
@@ -127,6 +128,7 @@ app.include_router(tutor_router)
 app.include_router(review_router)
 app.include_router(materials_router)
 app.include_router(students_router)
+app.include_router(monitoring_router)
 
 
 # ---------------------------------------------------------------------------

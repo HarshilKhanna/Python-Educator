@@ -391,3 +391,238 @@ label { display: block; font-weight: 500; color: var(--text-muted); margin-botto
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
+
+/* -----------------------------------------------------------------------
+   CSS custom property aliases used by Monitoring.jsx
+   ----------------------------------------------------------------------- */
+:root {
+  --color-success:         var(--success);
+  --color-danger:          var(--danger);
+  --color-warning:         var(--warning);
+  --color-primary:         var(--accent);
+  --color-text-secondary:  var(--text-muted);
+}
+
+/* -----------------------------------------------------------------------
+   Monitoring page layout
+   ----------------------------------------------------------------------- */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.page-actions { display: flex; gap: 10px; align-items: center; }
+
+.monitoring-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-subtitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 18px 0 10px;
+}
+
+.section-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+
+/* Stat cards */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  background: var(--surface-alt);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+}
+
+.stat-value { font-size: 32px; font-weight: 700; line-height: 1.1; margin-bottom: 4px; }
+.stat-label { font-size: 13px; font-weight: 600; color: var(--text); }
+.stat-sub { font-size: 10px; color: var(--text-muted); margin-top: 2px; font-family: monospace; }
+
+/* Tier bars */
+.tier-bars { display: flex; flex-direction: column; gap: 10px; }
+
+.tier-bar-row { display: flex; align-items: center; gap: 12px; }
+
+.tier-label { width: 90px; font-size: 13px; font-weight: 500; flex-shrink: 0; }
+
+.tier-bar-track {
+  flex: 1;
+  height: 10px;
+  background: var(--surface-alt);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.tier-bar-fill { height: 100%; border-radius: 5px; transition: width 0.4s ease; min-width: 2px; }
+.tier-count { width: 90px; font-size: 12px; color: var(--text-muted); text-align: right; }
+
+/* Kill-switch panel */
+.kill-switch-panel {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  transition: border-color var(--transition);
+}
+
+.kill-switch-panel.ks-active {
+  border-color: var(--danger);
+  background: rgba(231, 76, 60, 0.08);
+}
+
+.ks-header { display: flex; align-items: flex-start; gap: 14px; }
+.ks-icon { font-size: 26px; line-height: 1; margin-top: 2px; }
+.ks-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.ks-desc { font-size: 13px; color: var(--text-muted); max-width: 480px; }
+.ks-source { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+.btn-warning {
+  background: rgba(243, 156, 18, 0.15);
+  color: var(--warning);
+  border: 1px solid var(--warning);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition);
+  white-space: nowrap;
+}
+.btn-warning:hover { background: rgba(243, 156, 18, 0.28); }
+
+.btn-danger {
+  background: rgba(231, 76, 60, 0.15);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition);
+  white-space: nowrap;
+}
+.btn-danger:hover { background: rgba(231, 76, 60, 0.28); }
+
+/* Alert list */
+.alert-badge-count {
+  background: var(--danger);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  margin-left: 8px;
+}
+
+.alerts-list { display: flex; flex-direction: column; gap: 12px; }
+
+.alert-row {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: grid;
+  grid-template-rows: auto auto auto;
+  gap: 8px;
+}
+
+.alert-thrash { border-left: 3px solid var(--warning); }
+.alert-spike  { border-left: 3px solid var(--danger); }
+
+.alert-header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.alert-type-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.07);
+}
+
+.alert-new-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--danger);
+  color: #fff;
+  letter-spacing: 0.04em;
+}
+
+.alert-time { font-size: 11px; color: var(--text-muted); margin-left: auto; }
+.alert-student { font-size: 12px; color: var(--text-muted); }
+.alert-detail { font-size: 13px; color: var(--text); }
+.alert-detail code {
+  font-family: monospace;
+  background: rgba(255,255,255,0.07);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.btn-sm { padding: 5px 12px; font-size: 12px; justify-self: start; }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  padding: 7px 14px;
+}
+.btn-secondary:hover { border-color: var(--accent); color: var(--text); }
+
+.select-input {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.error-banner {
+  background: rgba(231, 76, 60, 0.12);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  color: var(--danger);
+  padding: 12px 16px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.empty-state { text-align: center; padding: 32px 16px; color: var(--text-muted); }
+.empty-icon { font-size: 36px; display: block; margin-bottom: 10px; }
