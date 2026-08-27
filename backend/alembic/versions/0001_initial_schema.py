@@ -174,9 +174,7 @@ def upgrade() -> None:
         sa.Column("uploaded_by", sa.String(), nullable=True),
         sa.Column("uploaded_at", sa.DateTime(timezone=True), nullable=True),
         # pgvector column: 384 dimensions for all-MiniLM-L6-v2
-        sa.Column("embedding", sa.Text().with_variant(
-            sa.text("vector(384)"), "postgresql"
-        ), nullable=True),
+        sa.Column("embedding", sa.Text(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_chunks_topic_id", "chunks", ["topic_id"])

@@ -10,13 +10,14 @@ import 'login_screen.dart';
 /// The single activity-flow screen.
 ///
 /// Responsibilities:
-///   - Load loops.json from assets on first build
+///   - Load activities for [topicId] from the backend on first build
 ///   - Render progress header
 ///   - Host the scrollable [ActivityRunner]
 ///   - Slide in [FeedbackPanel] after an answer is selected
 ///   - Show a completion card when the session ends
 class ActivityScreen extends ConsumerStatefulWidget {
-  const ActivityScreen({super.key});
+  final String topicId;
+  const ActivityScreen({super.key, this.topicId = 'loops'});
 
   @override
   ConsumerState<ActivityScreen> createState() => _ActivityScreenState();
@@ -32,7 +33,9 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
 
   Future<void> _loadActivities() async {
     try {
-      await ref.read(activitySessionProvider.notifier).fetchActivities('loops');
+      await ref
+          .read(activitySessionProvider.notifier)
+          .fetchActivities(widget.topicId);
     } catch (e) {
       ref
           .read(activitySessionProvider.notifier)
@@ -40,14 +43,6 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
     }
   }
 
-  Future<void> _logout() async {
-    await authService.clearToken();
-    if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {

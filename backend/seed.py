@@ -90,7 +90,7 @@ async def ingest_handbook() -> None:
         return
 
     async with AsyncSessionLocal() as session:
-        await _ingest_handbook(session, handbook_dir)
+        await _ingest_handbook(session)
         await session.commit()
 
     print("[seed] Handbook ingestion complete.")

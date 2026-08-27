@@ -48,8 +48,12 @@ services:
     ports:
       - "8000:8000"
     volumes:
+      # Activity JSON files served by GET /activities
+      - ./content/activities:/content/activities
       # Instructor-uploaded materials persist across container restarts
-      - ./content/uploads:/app/../content/uploads
+      - ./content/uploads:/content/uploads
+      # Mount the handbook so seed.py can find it for RAG ingestion
+      - ./docs:/docs
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/ready || exit 1"]
       interval: 15s

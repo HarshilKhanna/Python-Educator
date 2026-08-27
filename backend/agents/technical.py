@@ -17,7 +17,7 @@ import os
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -38,7 +38,7 @@ class TechnicalResponse(BaseModel):
 # LLM setup (lazy — only initialized when first called)
 # ---------------------------------------------------------------------------
 
-_llm: ChatOpenAI | None = None
+_llm: ChatGoogleGenerativeAI | None = None
 
 SYSTEM_PROMPT = """\
 You are a Python tutor assistant. You MUST answer using ONLY the information
@@ -58,14 +58,14 @@ Do not speculate, do not add examples not in the context, and do not apologize a
 """
 
 
-def _get_llm() -> ChatOpenAI:
+def _get_llm() -> ChatGoogleGenerativeAI:
     global _llm
     if _llm is None:
-        api_key = os.environ.get("OPENAI_API_KEY", "")
-        _llm = ChatOpenAI(
-            model="gpt-4o-mini",
+        api_key = os.environ.get("GEMINI_API_KEY", "")
+        _llm = ChatGoogleGenerativeAI(
+            model="gemini-3.6-flash",
             temperature=0.0,
-            openai_api_key=api_key,
+            google_api_key=api_key,
         )
     return _llm
 
@@ -116,7 +116,13 @@ async def technical_agent_node(
         HumanMessage(content=f"{context_blocks}\n\nQuestion: {question}"),
     ]
     response = await llm.ainvoke(messages)
-    answer: str = response.content.strip()
+    content = response.content
+    if isinstance(content, list):
+        answer = "".join(
+            c.get("text", "") if isinstance(c, dict) else str(c) for c in content
+        ).strip()
+    else:
+        answer = str(content).strip()
 
     # 5. Determine grounded flag
     not_grounded_phrase = "I don't have that in the course material yet"

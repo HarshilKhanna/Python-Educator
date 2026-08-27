@@ -40,7 +40,7 @@ DATABASE_URL: str = os.getenv(
 
 SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production-please")
 
-OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 
 STUDENT_TOKEN_EXPIRE_MINUTES: int = int(
     os.getenv("STUDENT_TOKEN_EXPIRE_MINUTES", "480")  # 8 hours
