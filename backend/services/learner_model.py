@@ -18,6 +18,7 @@ class LearnerModelService:
         signal: str,
         delta: float,
         risk_tier: str | None = None,
+        student_confidence: float | None = None,
     ) -> float:
         """
         Appends an AdaptationEvent, updates the Mastery table, and logs the transaction.
@@ -54,6 +55,12 @@ class LearnerModelService:
         new_mastery = max(0.0, min(1.0, new_mastery))
         
         mastery_record.mastery_level = new_mastery
+        
+        # Update self-reported confidence if the student provided it.
+        # Blend: 80% existing confidence + 20% new report to smooth noise.
+        if student_confidence is not None:
+            blended = 0.8 * mastery_record.confidence + 0.2 * max(0.0, min(1.0, student_confidence))
+            mastery_record.confidence = blended
         
         # 3. Create the adaptation event
         event = AdaptationEvent(

@@ -27,6 +27,8 @@ from routers.review import router as review_router
 from routers.materials import router as materials_router
 from routers.students import router as students_router
 from routers.monitoring import router as monitoring_router
+from routers.adaptive import router as adaptive_router
+from routers.tutor_feedback import router as tutor_feedback_router
 
 # ---------------------------------------------------------------------------
 # Logging setup — structured JSON to stdout
@@ -123,12 +125,14 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
 app.include_router(auth_router)
 app.include_router(activities.router)
+app.include_router(adaptive_router)
 app.include_router(answers.router)
 app.include_router(tutor_router)
 app.include_router(review_router)
 app.include_router(materials_router)
 app.include_router(students_router)
 app.include_router(monitoring_router)
+app.include_router(tutor_feedback_router)
 
 
 # ---------------------------------------------------------------------------

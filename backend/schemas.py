@@ -21,8 +21,16 @@ class AnswerSubmission(BaseModel):
     # student_id intentionally removed — derived from the authenticated JWT
     activity_id: str
     submitted_answer: str
+    # Optional self-reported confidence (0.0 = guessing, 1.0 = very sure).
+    # Sent by the metacognitive check-in widget before reveal.
+    confidence: float | None = None
 
 class AnswerResponse(BaseModel):
     mastery: float
     correct: bool
     explanation: str
+
+class TutorFeedbackRequest(BaseModel):
+    topic_id: str
+    message_id: str
+    rating: str  # 'up' or 'down'

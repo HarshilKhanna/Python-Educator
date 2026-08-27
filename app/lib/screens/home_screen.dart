@@ -1,36 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/curriculum.dart' as curr;
+import '../providers/settings_provider.dart';
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
-import 'activity_screen.dart';
-import 'tutor_screen.dart';
+import 'section_detail_screen.dart';
 import 'login_screen.dart';
 
-// ---------------------------------------------------------------------------
-// Topics definition
-// ---------------------------------------------------------------------------
-
-class _Topic {
-  final String id;
-  final String label;
-  final IconData icon;
-  final Color color;
-  const _Topic(this.id, this.label, this.icon, this.color);
-}
-
-const _topics = [
-  _Topic('loops', 'Loops', Icons.loop_rounded, Color(0xFF6366F1)),
-  _Topic('conditionals', 'Conditionals', Icons.alt_route_rounded, Color(0xFF8B5CF6)),
-  _Topic('lists', 'Lists', Icons.list_alt_rounded, Color(0xFF06B6D4)),
-  _Topic('dictionaries', 'Dictionaries', Icons.data_object_rounded, Color(0xFF10B981)),
-  _Topic('strings', 'Strings', Icons.text_fields_rounded, Color(0xFFF59E0B)),
-  _Topic('files', 'Files & I/O', Icons.folder_open_rounded, Color(0xFFEF4444)),
-  _Topic('basics-operators', 'Operators', Icons.calculate_rounded, Color(0xFF14B8A6)),
-];
-
-// ---------------------------------------------------------------------------
-// Mastery provider
-// ---------------------------------------------------------------------------
+// ── Mastery provider ────────────────────────────────────────────────────────
 
 final masteryProvider = FutureProvider<Map<String, double>>((ref) async {
   try {
@@ -44,9 +21,7 @@ final masteryProvider = FutureProvider<Map<String, double>>((ref) async {
   }
 });
 
-// ---------------------------------------------------------------------------
-// HomeScreen
-// ---------------------------------------------------------------------------
+// ── HomeScreen ──────────────────────────────────────────────────────────────
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -61,17 +36,23 @@ class HomeScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _Header(onLogout: () => _logout(context)),
+            _Header(
+              onLogout:   () => _logout(context),
+              onSettings: () => _showSettings(context),
+            ),
             Expanded(
               child: masteryAsync.when(
-                data: (mastery) => _TopicGrid(mastery: mastery),
+                data: (mastery) => _CurriculumPath(mastery: mastery),
                 loading: () => const Center(
                   child: CircularProgressIndicator(
                     color: Color(0xFF6366F1),
                     strokeWidth: 2.5,
                   ),
                 ),
-                error: (e, _) => _TopicGrid(mastery: const {}),
+                error: (e, _) => _ErrorRetry(
+                  message: 'Could not load your progress.',
+                  onRetry: () => ref.invalidate(masteryProvider),
+                ),
               ),
             ),
           ],
@@ -88,20 +69,30 @@ class HomeScreen extends ConsumerWidget {
       );
     }
   }
+
+  void _showSettings(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF141824),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => const _SettingsSheet(),
+    );
+  }
 }
 
-// ---------------------------------------------------------------------------
-// Header
-// ---------------------------------------------------------------------------
+// ── Header ──────────────────────────────────────────────────────────────────
 
 class _Header extends StatelessWidget {
   final VoidCallback onLogout;
-  const _Header({required this.onLogout});
+  final VoidCallback onSettings;
+  const _Header({required this.onLogout, required this.onSettings});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 20, 20, 0),
+      padding: const EdgeInsets.fromLTRB(24, 20, 16, 0),
       child: Row(
         children: [
           Column(
@@ -110,7 +101,7 @@ class _Header extends StatelessWidget {
               Text(
                 'Python Educator',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.3,
@@ -118,15 +109,18 @@ class _Header extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               const Text(
-                'Choose a topic to practice',
-                style: TextStyle(
-                  color: Color(0xFF6B7280),
-                  fontSize: 13,
-                ),
+                'Your learning path',
+                style: TextStyle(color: Color(0xFF6B7280), fontSize: 13),
               ),
             ],
           ),
           const Spacer(),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined,
+                color: Color(0xFF6B7280), size: 20),
+            onPressed: onSettings,
+            tooltip: 'Settings',
+          ),
           IconButton(
             icon: const Icon(Icons.logout_rounded,
                 color: Color(0xFF6B7280), size: 20),
@@ -139,42 +133,168 @@ class _Header extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Topic grid
-// ---------------------------------------------------------------------------
+// ── Curriculum path ─────────────────────────────────────────────────────────
 
-class _TopicGrid extends StatelessWidget {
+class _CurriculumPath extends StatelessWidget {
   final Map<String, double> mastery;
-  const _TopicGrid({required this.mastery});
+  const _CurriculumPath({required this.mastery});
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(20),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 14,
-        crossAxisSpacing: 14,
-        childAspectRatio: 1.05,
-      ),
-      itemCount: _topics.length,
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+      itemCount: curr.curriculumOrder.length,
       itemBuilder: (context, i) {
-        final topic = _topics[i];
-        final m = mastery[topic.id] ?? 0.0;
-        return _TopicCard(topic: topic, mastery: m);
+        final topicId = curr.curriculumOrder[i];
+        final meta    = curr.topicMeta.firstWhere(
+          (t) => t.id == topicId,
+          orElse: () => curr.TopicMeta(id: topicId, label: topicId, emoji: '📚'),
+        );
+        final masteryLevel = mastery[topicId] ?? 0.0;
+        final unlocked     = curr.isTopicUnlocked(topicId, mastery);
+        final blocking     = curr.blockingPrereqs(topicId, mastery);
+
+        return _TopicNode(
+          meta:         meta,
+          masteryLevel: masteryLevel,
+          unlocked:     unlocked,
+          blockingPrereqs: blocking,
+          isFirst:      i == 0,
+          isLast:       i == curr.curriculumOrder.length - 1,
+        );
       },
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// Topic card
-// ---------------------------------------------------------------------------
+// ── Topic node ──────────────────────────────────────────────────────────────
+
+/// A node on the curriculum path — unlocked topics glow; locked ones show a padlock.
+class _TopicNode extends StatelessWidget {
+  final curr.TopicMeta meta;
+  final double masteryLevel;
+  final bool unlocked;
+  final List<String> blockingPrereqs;
+  final bool isFirst;
+  final bool isLast;
+
+  const _TopicNode({
+    required this.meta,
+    required this.masteryLevel,
+    required this.unlocked,
+    required this.blockingPrereqs,
+    required this.isFirst,
+    required this.isLast,
+  });
+
+  Color get _accentColor {
+    if (!unlocked) return const Color(0xFF374151);
+    if (masteryLevel >= 0.9) return const Color(0xFF10B981);
+    if (masteryLevel >= curr.masteryThreshold) return const Color(0xFF6366F1);
+    return const Color(0xFF6366F1);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Vertical connector line ─────────────────────────────────────
+          SizedBox(
+            width: 48,
+            child: Column(
+              children: [
+                if (!isFirst)
+                  Expanded(
+                    child: Center(
+                      child: Container(
+                        width: 2,
+                        color: unlocked
+                            ? _accentColor.withValues(alpha: 0.4)
+                            : const Color(0xFF1F2937),
+                      ),
+                    ),
+                  ),
+                // Node circle
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: unlocked
+                        ? _accentColor.withValues(alpha: 0.12)
+                        : const Color(0xFF1A1F2E),
+                    border: Border.all(
+                      color: _accentColor.withValues(alpha: unlocked ? 0.6 : 0.2),
+                      width: unlocked ? 2 : 1,
+                    ),
+                    boxShadow: unlocked && masteryLevel < curr.masteryThreshold
+                        ? [
+                            BoxShadow(
+                              color: _accentColor.withValues(alpha: 0.25),
+                              blurRadius: 12,
+                              spreadRadius: 1,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Center(
+                    child: unlocked
+                        ? Text(meta.emoji, style: const TextStyle(fontSize: 20))
+                        : const Icon(Icons.lock_rounded,
+                            color: Color(0xFF4B5563), size: 18),
+                  ),
+                ),
+                if (!isLast)
+                  Expanded(
+                    child: Center(
+                      child: Container(
+                        width: 2,
+                        color: const Color(0xFF1F2937),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+
+          // ── Card ────────────────────────────────────────────────────────
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: _TopicCard(
+                meta:            meta,
+                masteryLevel:    masteryLevel,
+                unlocked:        unlocked,
+                blockingPrereqs: blockingPrereqs,
+                accentColor:     _accentColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Topic card ──────────────────────────────────────────────────────────────
 
 class _TopicCard extends StatelessWidget {
-  final _Topic topic;
-  final double mastery;
-  const _TopicCard({required this.topic, required this.mastery});
+  final curr.TopicMeta meta;
+  final double masteryLevel;
+  final bool unlocked;
+  final List<String> blockingPrereqs;
+  final Color accentColor;
+
+  const _TopicCard({
+    required this.meta,
+    required this.masteryLevel,
+    required this.unlocked,
+    required this.blockingPrereqs,
+    required this.accentColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -182,60 +302,95 @@ class _TopicCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => _showActions(context),
-        child: Container(
+        onTap: unlocked
+            ? () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => SectionDetailScreen(
+                      meta: meta,
+                      masteryLevel: masteryLevel,
+                    ),
+                  ),
+                );
+              }
+            : () => _showLockedDialog(context),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
           decoration: BoxDecoration(
             color: const Color(0xFF141824),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: topic.color.withOpacity(0.2),
+              color: accentColor.withValues(alpha: unlocked ? 0.3 : 0.1),
               width: 1,
             ),
           ),
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Icon badge
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: topic.color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: topic.color.withOpacity(0.25),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      meta.label,
+                      style: TextStyle(
+                        color: unlocked
+                            ? const Color(0xFFF9FAFB)
+                            : const Color(0xFF4B5563),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                ),
-                child: Icon(topic.icon, color: topic.color, size: 22),
+                  if (unlocked && masteryLevel >= curr.masteryThreshold)
+                    const Icon(Icons.verified_rounded,
+                        color: Color(0xFF10B981), size: 16),
+                ],
               ),
-              const Spacer(),
-              Text(
-                topic.label,
-                style: const TextStyle(
-                  color: Color(0xFFF9FAFB),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 6),
-              // Mastery bar
+              const SizedBox(height: 10),
+
+              // Mastery bar (reflects actual mastery, not completion)
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
-                  value: mastery,
+                  value: masteryLevel.clamp(0.0, 1.0),
                   backgroundColor: const Color(0xFF1F2937),
-                  valueColor: AlwaysStoppedAnimation(topic.color),
+                  valueColor: AlwaysStoppedAnimation(
+                    unlocked ? accentColor : const Color(0xFF374151),
+                  ),
                   minHeight: 4,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Mastery: ${(mastery * 100).toInt()}%',
-                style: const TextStyle(
-                  color: Color(0xFF6B7280),
-                  fontSize: 11,
-                ),
+              const SizedBox(height: 6),
+
+              Row(
+                children: [
+                  Text(
+                    unlocked
+                        ? 'Mastery: ${(masteryLevel * 100).toInt()}%'
+                        : 'Locked',
+                    style: TextStyle(
+                      color: unlocked
+                          ? const Color(0xFF6B7280)
+                          : const Color(0xFF374151),
+                      fontSize: 11,
+                    ),
+                  ),
+                  if (!unlocked && blockingPrereqs.isNotEmpty) ...[
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        '· Complete ${blockingPrereqs.map(curr.topicLabel).join(', ')} first',
+                        style: const TextStyle(
+                          color: Color(0xFF374151),
+                          fontSize: 11,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
@@ -244,85 +399,80 @@ class _TopicCard extends StatelessWidget {
     );
   }
 
-  void _showActions(BuildContext context) {
-    showModalBottomSheet(
+  void _showLockedDialog(BuildContext context) {
+    final prereqNames = blockingPrereqs.map(curr.topicLabel).join(', ');
+    showDialog(
       context: context,
-      backgroundColor: const Color(0xFF141824),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF141824),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.lock_rounded, color: Color(0xFF6366F1), size: 20),
+            const SizedBox(width: 8),
+            Text(meta.label,
+                style: const TextStyle(color: Colors.white, fontSize: 16)),
+          ],
+        ),
+        content: Text(
+          prereqNames.isEmpty
+              ? 'Complete earlier topics to unlock this one.'
+              : 'You need to master $prereqNames (≥${(curr.masteryThreshold * 100).toInt()}%) to unlock ${meta.label}.',
+          style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it', style: TextStyle(color: Color(0xFF6366F1))),
+          ),
+        ],
       ),
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Handle
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF374151),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+    );
+  }
+
+// ── Error retry ─────────────────────────────────────────────────────────────
+
+class _ErrorRetry extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+  const _ErrorRetry({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.wifi_off_rounded, color: Color(0xFF4B5563), size: 48),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Color(0xFF6B7280), fontSize: 15),
+            ),
+            const SizedBox(height: 24),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Try again'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF6366F1),
+                side: const BorderSide(color: Color(0xFF6366F1)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Icon(topic.icon, color: topic.color, size: 20),
-                  const SizedBox(width: 10),
-                  Text(
-                    topic.label,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              _ActionButton(
-                icon: Icons.quiz_rounded,
-                label: 'Practice Activities',
-                subtitle: 'Work through exercises',
-                color: topic.color,
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ActivityScreen(topicId: topic.id),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-              _ActionButton(
-                icon: Icons.chat_bubble_outline_rounded,
-                label: 'Ask the Tutor',
-                subtitle: 'Get AI-powered explanations',
-                color: const Color(0xFF10B981),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => TutorScreen(topicId: topic.id, topicLabel: topic.label),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
+
+// ── Action button (bottom-sheet) ─────────────────────────────────────────────
 
 class _ActionButton extends StatelessWidget {
   final IconData icon;
@@ -348,9 +498,9 @@ class _ActionButton extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.08),
+            color: color.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withOpacity(0.2)),
+            border: Border.all(color: color.withValues(alpha: 0.2)),
           ),
           child: Row(
             children: [
@@ -358,7 +508,7 @@ class _ActionButton extends StatelessWidget {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
+                  color: color.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, color: color, size: 20),
@@ -374,15 +524,154 @@ class _ActionButton extends StatelessWidget {
                             fontSize: 14,
                             fontWeight: FontWeight.w600)),
                     Text(subtitle,
-                        style: const TextStyle(
-                            color: Color(0xFF6B7280), fontSize: 12)),
+                        style:
+                            const TextStyle(color: Color(0xFF6B7280), fontSize: 12)),
                   ],
                 ),
               ),
               Icon(Icons.arrow_forward_ios_rounded,
-                  color: color.withOpacity(0.6), size: 14),
+                  color: color.withValues(alpha: 0.6), size: 14),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Settings bottom-sheet ────────────────────────────────────────────────────
+
+class _SettingsSheet extends ConsumerWidget {
+  const _SettingsSheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(settingsProvider);
+    final notifier = ref.read(settingsProvider.notifier);
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF374151),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Accessibility',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // ── Text size ───────────────────────────────────────────────
+            const Text('Text Size',
+                style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 13)),
+            const SizedBox(height: 10),
+            Row(
+              children: TextScale.values.map((scale) {
+                final selected = settings.textScale == scale;
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: GestureDetector(
+                      onTap: () => notifier.setTextScale(scale),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? const Color(0xFF6366F1).withValues(alpha: 0.15)
+                              : const Color(0xFF1F2937),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: selected
+                                ? const Color(0xFF6366F1)
+                                : const Color(0xFF374151),
+                          ),
+                        ),
+                        child: Text(
+                          scale.label,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: selected
+                                ? const Color(0xFF6366F1)
+                                : const Color(0xFF6B7280),
+                            fontSize: 13,
+                            fontWeight: selected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 20),
+
+            // ── High contrast ────────────────────────────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'High Contrast',
+                  style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
+                ),
+                Switch(
+                  value: settings.highContrast,
+                  onChanged: notifier.setHighContrast,
+                  activeColor: const Color(0xFF6366F1),
+                ),
+              ],
+            ),
+
+            // ── Reduced motion ───────────────────────────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Reduced Motion',
+                  style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
+                ),
+                Switch(
+                  value: settings.reducedMotion,
+                  onChanged: notifier.setReducedMotion,
+                  activeColor: const Color(0xFF6366F1),
+                ),
+              ],
+            ),
+
+            // ── Dyslexia font ────────────────────────────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Dyslexia Font (OpenDyslexic)',
+                  style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
+                ),
+                Switch(
+                  value: settings.dyslexiaFont,
+                  onChanged: notifier.setDyslexiaFont,
+                  activeColor: const Color(0xFF6366F1),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

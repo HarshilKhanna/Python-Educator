@@ -193,3 +193,16 @@ class AdaptationAlert(Base):
     # False until an instructor acknowledges/resolves the alert
     resolved = Column(Integer, nullable=False, default=0)  # 0=open, 1=resolved
     resolved_at = Column(DateTime(timezone=True), nullable=True)
+
+class TutorFeedback(Base):
+    """
+    Phase 1C: Thumbs up/down on chat answers.
+    """
+    __tablename__ = "tutor_feedback"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    student_id = Column(String, nullable=False, index=True)
+    topic_id = Column(String, nullable=False, index=True)
+    message_id = Column(String, nullable=False)
+    rating = Column(String, nullable=False)  # 'up' or 'down'
+    timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)

@@ -76,7 +76,8 @@ async def submit_answer(
             student_id=student_id,
             topic_id=topic_id,
             signal=signal,
-            delta=delta
+            delta=delta,
+            student_confidence=submission.confidence,
         )
         await db.commit()
     except Exception as e:

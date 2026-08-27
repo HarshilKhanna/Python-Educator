@@ -3,6 +3,30 @@ import 'package:http/http.dart' as http;
 import '../models/activity.dart';
 import 'auth_service.dart';
 
+/// Recommendation from the Pedagogical Agent via GET /activities/next.
+class NextActivityRecommendation {
+  final String topicId;
+  final String activityType;
+  final String reason;
+  final double confidence;
+
+  const NextActivityRecommendation({
+    required this.topicId,
+    required this.activityType,
+    required this.reason,
+    required this.confidence,
+  });
+
+  factory NextActivityRecommendation.fromJson(Map<String, dynamic> json) {
+    return NextActivityRecommendation(
+      topicId:      json['topic_id']      as String,
+      activityType: json['activity_type'] as String,
+      reason:       json['reason']        as String,
+      confidence:   (json['confidence'] as num).toDouble(),
+    );
+  }
+}
+
 class ApiClient {
   static const String baseUrl = 'http://localhost:8000';
 
@@ -14,6 +38,8 @@ class ApiClient {
       'Authorization': 'Bearer $token',
     };
   }
+
+  // ── Activities ────────────────────────────────────────────────────────────
 
   Future<List<Activity>> fetchActivities(String topicId) async {
     final headers = await _authHeaders();
@@ -31,18 +57,44 @@ class ApiClient {
     }
   }
 
+  /// Ask the Pedagogical Agent what to practice next.
+  /// Returns a recommendation with topic, activity type, and reason.
+  Future<NextActivityRecommendation> fetchNextActivity() async {
+    final headers = await _authHeaders();
+    final response = await http.get(
+      Uri.parse('$baseUrl/activities/next'),
+      headers: headers,
+    );
+    if (response.statusCode == 200) {
+      return NextActivityRecommendation.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>,
+      );
+    } else if (response.statusCode == 401) {
+      throw AuthException('Session expired. Please log in again.');
+    } else {
+      throw Exception('Failed to fetch next activity: ${response.statusCode}');
+    }
+  }
+
+  // ── Answers ───────────────────────────────────────────────────────────────
+
+  /// Submit an answer. [confidence] is the student's self-reported certainty (0–1).
   Future<double> submitAnswer({
     required String activityId,
     required String submittedAnswer,
+    double? confidence,
   }) async {
     final headers = await _authHeaders();
+    final body = <String, dynamic>{
+      'activity_id': activityId,
+      'submitted_answer': submittedAnswer,
+    };
+    if (confidence != null) body['confidence'] = confidence;
+
     final response = await http.post(
       Uri.parse('$baseUrl/answer'),
       headers: headers,
-      body: jsonEncode({
-        'activity_id': activityId,
-        'submitted_answer': submittedAnswer,
-      }),
+      body: jsonEncode(body),
     );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -53,6 +105,8 @@ class ApiClient {
       throw Exception('Failed to submit answer: ${response.statusCode}');
     }
   }
+
+  // ── Tutor ─────────────────────────────────────────────────────────────────
 
   /// Send a free-text message to the tutor agent.
   Future<Map<String, dynamic>> tutorChat({
@@ -66,22 +120,40 @@ class ApiClient {
       body: jsonEncode({'message': message, 'topic_id': topicId}),
     );
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      // Normalise: Flutter expects a 'response' key for display
-      if (!data.containsKey('response')) {
-        final display = data['answer'] ??
-            (data['next_activity_type'] != null
-                ? 'Next up: ${data['next_activity_type']} on ${data['next_topic_id']} — ${data['reason'] ?? ''}'
-                : 'No response.');
-        data['response'] = display;
-      }
-      return data;
+      return jsonDecode(response.body) as Map<String, dynamic>;
     } else if (response.statusCode == 401) {
       throw AuthException('Session expired. Please log in again.');
     } else {
       throw Exception('Tutor error: ${response.statusCode}');
     }
   }
+
+  /// Submit thumbs up/down feedback for a tutor message.
+  Future<void> submitTutorFeedback({
+    required String topicId,
+    required String messageId,
+    required String rating, // 'up' or 'down'
+  }) async {
+    final headers = await _authHeaders();
+    final response = await http.post(
+      Uri.parse('$baseUrl/tutor/feedback'),
+      headers: headers,
+      body: jsonEncode({
+        'topic_id': topicId,
+        'message_id': messageId,
+        'rating': rating,
+      }),
+    );
+    if (response.statusCode == 200) {
+      return;
+    } else if (response.statusCode == 401) {
+      throw AuthException('Session expired. Please log in again.');
+    } else {
+      throw Exception('Failed to submit feedback: ${response.statusCode}');
+    }
+  }
+
+  // ── Mastery ───────────────────────────────────────────────────────────────
 
   /// Fetch per-topic mastery for the current student (decoded from JWT).
   Future<List<Map<String, dynamic>>> fetchMastery() async {

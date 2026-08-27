@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,11 +11,13 @@ import 'login_screen.dart';
 /// The single activity-flow screen.
 ///
 /// Responsibilities:
-///   - Load activities for [topicId] from the backend on first build
-///   - Render progress header
+///   - Load activities for [topicId] (or via Pedagogical Agent in adaptive mode)
+///   - Render dual-track progress header
 ///   - Host the scrollable [ActivityRunner]
+///   - Show metacognitive confidence check-in before submit
 ///   - Slide in [FeedbackPanel] after an answer is selected
-///   - Show a completion card when the session ends
+///   - Surface struggle intervention after ≥2 wrong attempts
+///   - Show expanded session recap on completion
 class ActivityScreen extends ConsumerStatefulWidget {
   final String topicId;
   const ActivityScreen({super.key, this.topicId = 'loops'});
@@ -24,45 +27,53 @@ class ActivityScreen extends ConsumerStatefulWidget {
 }
 
 class _ActivityScreenState extends ConsumerState<ActivityScreen> {
+  bool _adaptive = true; // start in adaptive mode; user can toggle
+  Timer? _struggleTimer;
+
   @override
   void initState() {
     super.initState();
-    // Defer until after first frame so the provider is fully mounted.
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadActivities());
+  }
+
+  @override
+  void dispose() {
+    _struggleTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadActivities() async {
     try {
-      await ref
-          .read(activitySessionProvider.notifier)
-          .fetchActivities(widget.topicId);
+      if (_adaptive) {
+        await ref.read(activitySessionProvider.notifier).fetchAdaptiveActivities();
+      } else {
+        await ref.read(activitySessionProvider.notifier).fetchActivities(widget.topicId);
+      }
     } catch (e) {
-      ref
-          .read(activitySessionProvider.notifier)
-          .setError('Could not load activities:\n$e');
+      ref.read(activitySessionProvider.notifier).setError('Could not load activities:\n$e');
     }
   }
 
+  void _switchMode() {
+    setState(() => _adaptive = !_adaptive);
+    _loadActivities();
+  }
 
   @override
   Widget build(BuildContext context) {
     final session = ref.watch(activitySessionProvider);
 
-    // Listen for token-expiry signal from offline queue sync
+    // ── Token expiry listener ──────────────────────────────────────────────
     ref.listen<ActivitySessionState>(activitySessionProvider, (_, next) {
       if (next.needsRelogin && mounted) {
-        // Clear the flag so the listener doesn't fire again
         ref.read(activitySessionProvider.notifier).clearReloginFlag();
-        // Show re-login prompt — queued answers are safe
         showDialog(
           context: context,
           barrierDismissible: false,
           builder: (_) => AlertDialog(
             backgroundColor: const Color(0xFF141824),
-            title: const Text(
-              'Session Expired',
-              style: TextStyle(color: Colors.white),
-            ),
+            title: const Text('Session Expired',
+                style: TextStyle(color: Colors.white)),
             content: const Text(
               'Your session has expired. Any offline answers are safely queued '
               'and will be submitted once you log back in.',
@@ -83,15 +94,34 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
           ),
         );
       }
+
+      // ── Struggle detection ─────────────────────────────────────────────
+      if (next.shouldShowStruggle && mounted) {
+        ref.read(activitySessionProvider.notifier).markStruggleShown();
+        _showStruggleIntervention();
+      }
     });
 
+    // ── Loading ────────────────────────────────────────────────────────────
     if (session.isLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF0A0E1A),
+      return Scaffold(
+        backgroundColor: const Color(0xFF0A0E1A),
         body: Center(
-          child: CircularProgressIndicator(
-            color: Color(0xFF6366F1),
-            strokeWidth: 2.5,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(
+                color: Color(0xFF6366F1),
+                strokeWidth: 2.5,
+              ),
+              if (_adaptive) ...[
+                const SizedBox(height: 20),
+                const Text(
+                  'Asking your tutor what to study next…',
+                  style: TextStyle(color: Color(0xFF6B7280), fontSize: 13),
+                ),
+              ],
+            ],
           ),
         ),
       );
@@ -104,10 +134,31 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(32),
-            child: Text(
-              session.error!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Color(0xFFEF4444), fontSize: 14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline_rounded,
+                    color: Color(0xFFEF4444), size: 48),
+                const SizedBox(height: 16),
+                Text(
+                  session.error!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Color(0xFFEF4444), fontSize: 14),
+                ),
+                const SizedBox(height: 24),
+                OutlinedButton.icon(
+                  onPressed: _loadActivities,
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Retry'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF6366F1),
+                    side: const BorderSide(color: Color(0xFF6366F1)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -116,11 +167,10 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
 
     // ── Session complete ───────────────────────────────────────────────────
     if (session.isComplete) {
-      return _CompletionScreen(
-        total: session.activities.length,
-        mastery: session.mastery,
-        onRestart: () =>
-            ref.read(activitySessionProvider.notifier).restart(),
+      return _SessionRecap(
+        session:   session,
+        onRestart: () => ref.read(activitySessionProvider.notifier).restart(),
+        onHome:    () => Navigator.of(context).pop(),
       );
     }
 
@@ -132,18 +182,20 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Progress header
             _ProgressHeader(
-              topicId: activity.topicId,
-              current: session.currentIndex + 1,
-              total: session.activities.length,
-              progress: session.progress,
-              streak: session.streak,
-              mastery: session.mastery,
-              isOffline: session.isOffline,
+              topicId:    activity.topicId,
+              current:    session.currentIndex + 1,
+              total:      session.activities.length,
+              masteryProgress:    session.progress,
+              completionProgress: session.completionProgress,
+              streak:     session.streak,
+              mastery:    session.mastery,
+              isOffline:  session.isOffline,
+              isAdaptive: session.isAdaptive,
+              agentReason: session.agentReason,
+              onToggleMode: _switchMode,
             ),
 
-            // Scrollable activity content
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
@@ -151,13 +203,26 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
                   duration: const Duration(milliseconds: 300),
                   child: KeyedSubtree(
                     key: ValueKey(activity.id),
-                    child: ActivityRunner(activity: activity),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ActivityRunner(activity: activity),
+
+                        // ── Confidence check-in ──────────────────────────
+                        if (!session.isAnswered)
+                          _ConfidenceRow(
+                            current: session.pendingConfidence,
+                            onSelect: (v) => ref
+                                .read(activitySessionProvider.notifier)
+                                .setPendingConfidence(v),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
 
-            // Feedback panel — slides in after answering
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 380),
               transitionBuilder: (child, animation) => SlideTransition(
@@ -173,9 +238,9 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
               child: session.isAnswered
                   ? FeedbackPanel(
                       key: ValueKey('feedback_${session.currentIndex}'),
-                      isCorrect: session.isCorrect,
+                      isCorrect:   session.isCorrect,
                       explanation: activity.explanation,
-                      isLast: session.isLastActivity,
+                      isLast:      session.isLastActivity,
                       onNext: () =>
                           ref.read(activitySessionProvider.notifier).nextActivity(),
                     )
@@ -186,27 +251,134 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
       ),
     );
   }
+
+  void _showStruggleIntervention() {
+    final activity = ref.read(activitySessionProvider).currentActivity;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF141824),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF374151),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Row(
+                children: [
+                  Text('🤔', style: TextStyle(fontSize: 22)),
+                  SizedBox(width: 10),
+                  Text(
+                    'Looks like this one\'s tricky',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "That's completely fine — let's try a different approach.",
+                style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
+              ),
+              const SizedBox(height: 20),
+              if (activity != null)
+                _StruggleOption(
+                  icon: Icons.lightbulb_outline_rounded,
+                  label: 'Show me the explanation',
+                  color: const Color(0xFFF59E0B),
+                  onTap: () {
+                    Navigator.pop(context);
+                    showDialog(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        backgroundColor: const Color(0xFF141824),
+                        title: const Text('Hint',
+                            style: TextStyle(color: Colors.white)),
+                        content: Text(
+                          activity.explanation,
+                          style: const TextStyle(
+                              color: Color(0xFF9CA3AF), fontSize: 13, height: 1.5),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Got it',
+                                style: TextStyle(color: Color(0xFF6366F1))),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              const SizedBox(height: 10),
+              _StruggleOption(
+                icon: Icons.skip_next_rounded,
+                label: 'Skip this one for now',
+                color: const Color(0xFF6366F1),
+                onTap: () {
+                  Navigator.pop(context);
+                  ref.read(activitySessionProvider.notifier).nextActivity();
+                },
+              ),
+              const SizedBox(height: 10),
+              _StruggleOption(
+                icon: Icons.self_improvement_rounded,
+                label: 'Take a short break',
+                color: const Color(0xFF10B981),
+                onTap: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-// ── Progress header ───────────────────────────────────────────────────────────
+// ── Progress header ────────────────────────────────────────────────────────────
 
 class _ProgressHeader extends StatelessWidget {
   final String topicId;
   final int current;
   final int total;
-  final double progress;
+  final double masteryProgress;
+  final double completionProgress;
   final int streak;
   final double mastery;
   final bool isOffline;
+  final bool isAdaptive;
+  final String? agentReason;
+  final VoidCallback onToggleMode;
 
   const _ProgressHeader({
     required this.topicId,
     required this.current,
     required this.total,
-    required this.progress,
+    required this.masteryProgress,
+    required this.completionProgress,
     required this.streak,
     required this.mastery,
     required this.isOffline,
+    required this.isAdaptive,
+    required this.agentReason,
+    required this.onToggleMode,
   });
 
   @override
@@ -219,35 +391,82 @@ class _ProgressHeader extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Topic label and Logout
-              Row(
-                children: [
-                  Text(
-                    topicId.replaceAll('_', ' ').toUpperCase(),
-                    style: const TextStyle(
-                      color: Color(0xFF6366F1),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.6,
+              // Topic label + adaptive badge
+              Flexible(
+                child: Row(
+                  children: [
+                    Text(
+                      topicId.replaceAll('-', ' ').replaceAll('_', ' ').toUpperCase(),
+                      style: const TextStyle(
+                        color: Color(0xFF6366F1),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.6,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    icon: const Icon(Icons.logout, size: 16, color: Color(0xFF9CA3AF)),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    onPressed: () async {
-                      await authService.clearToken();
-                      if (context.mounted) {
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(builder: (_) => const LoginScreen()),
-                        );
-                      }
-                    },
-                  ),
-                ],
+                    const SizedBox(width: 6),
+                    if (isAdaptive)
+                      GestureDetector(
+                        onTap: onToggleMode,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: const Color(0xFF6366F1).withValues(alpha: 0.4),
+                            ),
+                          ),
+                          child: const Text(
+                            'ADAPTIVE',
+                            style: TextStyle(
+                              color: Color(0xFF6366F1),
+                              fontSize: 8,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      GestureDetector(
+                        onTap: onToggleMode,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF374151).withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'LINEAR',
+                            style: TextStyle(
+                              color: Color(0xFF6B7280),
+                              fontSize: 8,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ),
+                      ),
+                    IconButton(
+                      icon: const Icon(Icons.logout, size: 16, color: Color(0xFF9CA3AF)),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () async {
+                        await authService.clearToken();
+                        if (context.mounted) {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(builder: (_) => const LoginScreen()),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
               ),
-              // Stats: streak + score + counter
+              // Stats
               Row(
                 children: [
                   _StatChip(
@@ -262,7 +481,7 @@ class _ProgressHeader extends StatelessWidget {
                     icon: '🎓',
                     value: '${(mastery * 100).toInt()}%',
                     color: mastery > 0
-                        ? const Color(0xFF10B981) // Emerald green
+                        ? const Color(0xFF10B981)
                         : const Color(0xFF4B5563),
                   ),
                   if (isOffline) ...[
@@ -274,7 +493,6 @@ class _ProgressHeader extends StatelessWidget {
                     ),
                   ],
                   const SizedBox(width: 10),
-                  // Progress counter pill
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -283,7 +501,7 @@ class _ProgressHeader extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      '$current / $total',
+                      '$current / $total',
                       style: const TextStyle(
                         color: Color(0xFF9CA3AF),
                         fontSize: 12,
@@ -295,22 +513,74 @@ class _ProgressHeader extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          // Progress bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: progress),
-              duration: const Duration(milliseconds: 450),
-              curve: Curves.easeOutCubic,
-              builder: (_, value, _) => LinearProgressIndicator(
-                value: value,
-                backgroundColor: const Color(0xFF1F2937),
-                valueColor:
-                    const AlwaysStoppedAnimation(Color(0xFF6366F1)),
-                minHeight: 5,
+
+          // Agent reason subtitle
+          if (isAdaptive && agentReason != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              agentReason!,
+              style: const TextStyle(
+                color: Color(0xFF4B5563),
+                fontSize: 10,
+                fontStyle: FontStyle.italic,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
+          ],
+
+          const SizedBox(height: 10),
+
+          // ── Dual-track progress bars ────────────────────────────────────
+          // Top: mastery delta (what actually matters)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text('Mastery gained',
+                      style: TextStyle(
+                          color: Color(0xFF4B5563), fontSize: 9)),
+                  const Spacer(),
+                  Text('Questions done',
+                      style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          fontSize: 9)),
+                ],
+              ),
+              const SizedBox(height: 3),
+              Stack(
+                children: [
+                  // Completion track (background, subtle)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: completionProgress,
+                      backgroundColor: const Color(0xFF1F2937),
+                      valueColor: AlwaysStoppedAnimation(
+                        const Color(0xFF374151).withValues(alpha: 0.6),
+                      ),
+                      minHeight: 5,
+                    ),
+                  ),
+                  // Mastery track (foreground, vivid)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0, end: masteryProgress),
+                      duration: const Duration(milliseconds: 450),
+                      curve: Curves.easeOutCubic,
+                      builder: (_, value, _) => LinearProgressIndicator(
+                        value: value,
+                        backgroundColor: Colors.transparent,
+                        valueColor: const AlwaysStoppedAnimation(Color(0xFF6366F1)),
+                        minHeight: 5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
@@ -318,112 +588,262 @@ class _ProgressHeader extends StatelessWidget {
   }
 }
 
-// ── Completion screen ─────────────────────────────────────────────────────────
+// ── Confidence check-in ────────────────────────────────────────────────────
 
-class _CompletionScreen extends StatelessWidget {
-  final int total;
-  final double mastery;
+class _ConfidenceRow extends StatelessWidget {
+  final double? current;
+  final void Function(double) onSelect;
+
+  const _ConfidenceRow({required this.current, required this.onSelect});
+
+  static const _levels = [0.25, 0.5, 0.75, 1.0];
+  static const _labels = ['Guessing', 'Unsure', 'Pretty sure', 'Certain'];
+  static const _emojis = ['🤔', '🙂', '😊', '💪'];
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'How sure are you?',
+            style: TextStyle(
+              color: Color(0xFF6B7280),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: List.generate(_levels.length, (i) {
+              final selected = current != null &&
+                  (current! - _levels[i]).abs() < 0.01;
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => onSelect(_levels[i]),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    margin: EdgeInsets.only(right: i < _levels.length - 1 ? 6 : 0),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? const Color(0xFF6366F1).withValues(alpha: 0.15)
+                          : const Color(0xFF1F2937),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: selected
+                            ? const Color(0xFF6366F1)
+                            : const Color(0xFF374151),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(_emojis[i],
+                            style: const TextStyle(fontSize: 14)),
+                        const SizedBox(height: 2),
+                        Text(
+                          _labels[i],
+                          style: TextStyle(
+                            color: selected
+                                ? const Color(0xFF6366F1)
+                                : const Color(0xFF4B5563),
+                            fontSize: 9,
+                            fontWeight: selected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Session recap ──────────────────────────────────────────────────────────────
+
+class _SessionRecap extends StatelessWidget {
+  final ActivitySessionState session;
   final VoidCallback onRestart;
+  final VoidCallback onHome;
 
-  const _CompletionScreen({
-    required this.total,
-    required this.mastery,
+  const _SessionRecap({
+    required this.session,
     required this.onRestart,
+    required this.onHome,
   });
 
   @override
   Widget build(BuildContext context) {
+    final masteryDelta = session.mastery - session.initialMastery;
+    final total = session.correctCount + session.incorrectCount;
+    final pct   = total == 0 ? 0 : (session.correctCount / total * 100).toInt();
+
     return Scaffold(
       backgroundColor: const Color(0xFF0A0E1A),
       body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Trophy icon
-                Container(
-                  width: 88,
-                  height: 88,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF6366F1).withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0xFF6366F1).withValues(alpha: 0.3),
-                      width: 1.5,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+
+              // Trophy
+              Container(
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                    width: 1.5,
+                  ),
+                ),
+                child: const Icon(Icons.emoji_events_rounded,
+                    color: Color(0xFF6366F1), size: 44),
+              ),
+              const SizedBox(height: 24),
+
+              const Text(
+                'Session Complete!',
+                style: TextStyle(
+                  color: Color(0xFFF9FAFB),
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                session.isAdaptive
+                    ? 'Adaptive session on ${session.currentActivity?.topicId ?? "your current topic"}'
+                    : 'You worked through all ${session.activities.length} activities.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xFF9CA3AF),
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 28),
+
+              // Stats grid
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 2.2,
+                children: [
+                  _RecapStat(
+                      emoji: '✅',
+                      label: 'Correct',
+                      value: '${session.correctCount}'),
+                  _RecapStat(
+                      emoji: '❌',
+                      label: 'Incorrect',
+                      value: '${session.incorrectCount}'),
+                  _RecapStat(
+                      emoji: '🎯',
+                      label: 'Accuracy',
+                      value: '$pct%'),
+                  _RecapStat(
+                      emoji: '🔥',
+                      label: 'Best streak',
+                      value: '${session.bestStreak}'),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Mastery delta chip
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('📈', style: TextStyle(fontSize: 18)),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Mastery',
+                            style: TextStyle(
+                                color: Color(0xFF6B7280), fontSize: 11)),
+                        Text(
+                          masteryDelta > 0
+                              ? '+${(masteryDelta * 100).toInt()}%  →  ${(session.mastery * 100).toInt()}% total'
+                              : '${(session.mastery * 100).toInt()}% total',
+                          style: const TextStyle(
+                            color: Color(0xFF10B981),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  child: const Icon(
-                    Icons.emoji_events_rounded,
-                    color: Color(0xFF6366F1),
-                    size: 44,
-                  ),
+                  ],
                 ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Session Complete!',
-                  style: TextStyle(
-                    color: Color(0xFFF9FAFB),
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'You worked through all $total activities.',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFF9CA3AF),
-                    fontSize: 15,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                // Final score chip
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFBBF24).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: const Color(0xFFFBBF24).withValues(alpha: 0.35),
-                    ),
-                  ),
-                  child: Text(
-                    '🎓 Final Mastery: ${(mastery * 100).toInt()}%',
-                    style: const TextStyle(
-                      color: Color(0xFF10B981),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 36),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: onRestart,
-                    icon: const Icon(Icons.replay_rounded, size: 18),
-                    label: const Text(
-                      'Practice Again',
+              ),
+
+              const SizedBox(height: 32),
+
+              // Buttons
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: onRestart,
+                  icon: const Icon(Icons.replay_rounded, size: 18),
+                  label: const Text('Practice Again',
                       style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF6366F1),
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                          fontSize: 15, fontWeight: FontWeight.w600)),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF6366F1),
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: onHome,
+                  icon: const Icon(Icons.home_rounded, size: 18),
+                  label: const Text('Return Home',
+                      style: TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w600)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF6B7280),
+                    side: const BorderSide(color: Color(0xFF374151)),
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -431,18 +851,56 @@ class _CompletionScreen extends StatelessWidget {
   }
 }
 
-// ── Stat chip (streak / score) ────────────────────────────────────────────────
+class _RecapStat extends StatelessWidget {
+  final String emoji;
+  final String label;
+  final String value;
+
+  const _RecapStat(
+      {required this.emoji, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141824),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF1F2937)),
+      ),
+      child: Row(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 18)),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(label,
+                  style: const TextStyle(
+                      color: Color(0xFF4B5563), fontSize: 10)),
+              Text(value,
+                  style: const TextStyle(
+                    color: Color(0xFFF3F4F6),
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                  )),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Stat chip ─────────────────────────────────────────────────────────────────
 
 class _StatChip extends StatelessWidget {
   final String icon;
   final String value;
   final Color color;
 
-  const _StatChip({
-    required this.icon,
-    required this.value,
-    required this.color,
-  });
+  const _StatChip({required this.icon, required this.value, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -462,10 +920,8 @@ class _StatChip extends StatelessWidget {
           const SizedBox(width: 4),
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 250),
-            transitionBuilder: (child, anim) => ScaleTransition(
-              scale: anim,
-              child: child,
-            ),
+            transitionBuilder: (child, anim) =>
+                ScaleTransition(scale: anim, child: child),
             child: Text(
               value,
               key: ValueKey(value),
@@ -477,6 +933,55 @@ class _StatChip extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Struggle intervention option ─────────────────────────────────────────────
+
+class _StruggleOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _StruggleOption({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withValues(alpha: 0.2)),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
