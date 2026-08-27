@@ -1,0 +1,7 @@
+# Force LF line endings for files that affect Docker cache or run in Linux containers
+* text=auto
+
+# Explicitly force LF for requirements to avoid Docker cache busts on Windows
+requirements.txt text eol=lf
+Dockerfile text eol=lf
+*.sh text eol=lf
