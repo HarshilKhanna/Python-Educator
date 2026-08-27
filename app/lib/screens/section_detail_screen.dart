@@ -4,7 +4,7 @@ import 'activity_screen.dart';
 import 'tutor_screen.dart';
 
 class SectionDetailScreen extends StatelessWidget {
-  final TopicNode meta;
+  final TopicMeta meta;
   final double masteryLevel;
 
   const SectionDetailScreen({
@@ -15,7 +15,6 @@ class SectionDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final unlocked = true; // By definition, since we reached this screen
     final accentColor = const Color(0xFF6366F1);
 
     return Scaffold(

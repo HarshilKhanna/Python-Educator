@@ -429,6 +429,7 @@ class _TopicCard extends StatelessWidget {
       ),
     );
   }
+}
 
 // ── Error retry ─────────────────────────────────────────────────────────────
 
