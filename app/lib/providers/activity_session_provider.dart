@@ -24,6 +24,8 @@ class ActivitySessionState {
   final int streak;
   /// Best streak achieved this session.
   final int bestStreak;
+  /// User XP
+  final int xp;
   /// Mastery value returned from the backend (0.0–1.0).
   final double mastery;
   /// Mastery value at the very start of the session (for delta calculation).
@@ -73,6 +75,7 @@ class ActivitySessionState {
     this.isComplete = false,
     this.streak = 0,
     this.bestStreak = 0,
+    this.xp = 0,
     this.mastery = 0.0,
     this.initialMastery = 0.0,
     this.correctCount = 0,
@@ -128,6 +131,7 @@ class ActivitySessionState {
     bool? isComplete,
     int? streak,
     int? bestStreak,
+    int? xp,
     double? mastery,
     double? initialMastery,
     int? correctCount,
@@ -151,6 +155,7 @@ class ActivitySessionState {
       isComplete:              isComplete              ?? this.isComplete,
       streak:                  streak                  ?? this.streak,
       bestStreak:              bestStreak              ?? this.bestStreak,
+      xp:                      xp                      ?? this.xp,
       mastery:                 mastery                 ?? this.mastery,
       initialMastery:          initialMastery          ?? this.initialMastery,
       correctCount:            correctCount            ?? this.correctCount,
@@ -358,12 +363,22 @@ class ActivitySessionNotifier extends Notifier<ActivitySessionState> {
     double? confidence,
   ) async {
     try {
-      final newMastery = await apiClient.submitAnswer(
+      final responseData = await apiClient.submitAnswer(
         activityId: activityId,
         submittedAnswer: answer,
         confidence: confidence,
       );
-      state = state.copyWith(mastery: newMastery, isOffline: false);
+      
+      final newMastery = (responseData['mastery'] as num).toDouble();
+      final newStreak = responseData['streak'] as int;
+      final newXp = responseData['xp'] as int;
+      
+      state = state.copyWith(
+        mastery: newMastery,
+        streak: newStreak, // override optimistic UI with server truth
+        xp: newXp,
+        isOffline: false,
+      );
 
       // Online → drain offline queue
       await offlineQueue.syncQueue(onTokenExpired: _handleTokenExpired);

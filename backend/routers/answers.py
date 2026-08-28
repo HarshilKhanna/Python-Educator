@@ -75,12 +75,27 @@ async def submit_answer(
         confidence_factor = 0.5 + (0.5 * confidence) 
         delta = 0.15 * difficulty * distance * confidence_factor
         signal = "correct"
+        
+        # Streak and XP logic
+        current_user.streak += 1
+        if current_user.streak > current_user.best_streak:
+            current_user.best_streak = current_user.streak
+        
+        # XP formula: base (10) * difficulty + streak bonus (up to 50)
+        streak_bonus = min(50, current_user.streak * 5)
+        current_user.xp += (10 * difficulty) + streak_bonus
+        
     else:
         # Penalize more if they are already considered "mastered"
         # Confident and wrong -> big penalty (1.5x). Unsure and wrong -> normal penalty (1.0x).
         confidence_factor = 1.5 if confidence > 0.6 else 1.0
         delta = -0.10 * difficulty * max(0.2, current_mastery) * confidence_factor
         signal = "incorrect"
+        
+        # Break streak
+        current_user.streak = 0
+        # Optional: grant a tiny 2 XP just for attempting
+        current_user.xp += 2
         
     # 4. Call LearnerModelService.recordUpdate
     # This must be the ONLY place that touches mastery/confidence
@@ -94,13 +109,21 @@ async def submit_answer(
             delta=delta,
             student_confidence=submission.confidence,
         )
+        
+        db.add(current_user)
         await db.commit()
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to update learner model: {str(e)}")
-
+        
+    # 5. Return explanation (only if they got it wrong, or unconditionally?)
+    # Usually you return the explanation if they got it wrong so they can learn.
+    explanation = activity.get("explanation") if not is_correct else "Correct!"
+    
     return AnswerResponse(
-        mastery=updated_mastery,
         correct=is_correct,
-        explanation=activity.get("explanation", "")
+        explanation=explanation,
+        mastery=updated_mastery,
+        streak=current_user.streak,
+        xp=current_user.xp,
     )

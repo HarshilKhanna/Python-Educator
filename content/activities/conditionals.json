@@ -7,10 +7,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "age = 20\nif age >= 18:\n    print('You are an adult')",
       "options": [
-        "You are a minor",
+        "Nothing is printed",
         "You are an adult",
         "True",
-        "Nothing is printed"
+        "You are a minor"
       ],
       "correct_answer": "You are an adult",
       "explanation": "20 >= 18 is True, so the if-block executes and prints 'You are an adult'.",
@@ -27,10 +27,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "age = 15\nif age >= 18:\n    print('You are an adult')\nelse:\n    print('You are a minor')",
       "options": [
-        "You are an adult",
+        "You are a minor",
         "True\nFalse",
-        "Error",
-        "You are a minor"
+        "You are an adult",
+        "Error"
       ],
       "correct_answer": "You are a minor",
       "explanation": "15 >= 18 is False, so the else-branch runs and prints 'You are a minor'.",
@@ -47,9 +47,9 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "a = 7\nb = 3\nc = 1\nif (a >= b) and (a >= c):\n    print('Biggest=', a)\nelif (b >= c):\n    print('Biggest=', b)\nelse:\n    print('Biggest=', c)",
       "options": [
-        "Biggest= 7\nBiggest= 3",
-        "Biggest= 3",
         "Biggest= 1",
+        "Biggest= 3",
+        "Biggest= 7\nBiggest= 3",
         "Biggest= 7"
       ],
       "correct_answer": "Biggest= 7",
@@ -67,10 +67,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "c = 2\nif (c == 1):\n    print(10 + 5)\nelif (c == 2):\n    print(10 - 5)\nelif (c == 3):\n    print(10 * 5)\nelse:\n    print(10 / 5)",
       "options": [
-        "2",
         "50",
+        "5",
         "15",
-        "5"
+        "2"
       ],
       "correct_answer": "5",
       "explanation": "c == 1 is False, c == 2 is True, so the second branch runs: 10 - 5 = 5.",
@@ -88,9 +88,9 @@
       "code_snippet": "for i in range(1, 6):\n    if i == 3:\n        break\n    print(i)",
       "options": [
         "1\n2",
+        "1\n2\n4\n5",
         "1\n2\n3\n4\n5",
-        "1\n2\n3",
-        "1\n2\n4\n5"
+        "1\n2\n3"
       ],
       "correct_answer": "1\n2",
       "explanation": "The loop runs i=1 (prints 1), i=2 (prints 2), i=3 (break fires before print, loop ends). Nothing after 2 is printed.",
@@ -107,10 +107,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "for i in range(1, 6):\n    if i == 3:\n        continue\n    print(i)",
       "options": [
-        "4\n5",
-        "1\n2\n4\n5",
+        "1\n2",
         "1\n2\n3\n4\n5",
-        "1\n2"
+        "1\n2\n4\n5",
+        "4\n5"
       ],
       "correct_answer": "1\n2\n4\n5",
       "explanation": "continue skips the rest of the loop body for the current iteration and moves to the next. When i=3, print is skipped; all others print.",
@@ -127,10 +127,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "a = 5\nb = 3\nbig = a\nif b > big:\n    big = b\nprint(big)",
       "options": [
-        "5",
         "3",
-        "False",
-        "True"
+        "True",
+        "5",
+        "False"
       ],
       "correct_answer": "5",
       "explanation": "big starts as a (5). b > big is 3 > 5, which is False, so big stays 5.",
@@ -147,10 +147,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "x = True\ny = False\nprint(x and y)\nprint(x or y)\nprint(not x)",
       "options": [
-        "True\nFalse\nFalse",
         "False\nTrue\nFalse",
+        "False\nFalse\nTrue",
         "True\nTrue\nFalse",
-        "False\nFalse\nTrue"
+        "True\nFalse\nFalse"
       ],
       "correct_answer": "False\nTrue\nFalse",
       "explanation": "True and False = False. True or False = True. not True = False.",
@@ -168,9 +168,9 @@
       "code_snippet": "x = 5\nif x > 10:\n    print('A')\nelif x == 5:\n    print('B')\nelse:\n    print('C')",
       "options": [
         "Error",
+        "C",
         "A",
-        "B",
-        "C"
+        "B"
       ],
       "correct_answer": "B",
       "explanation": "Since x is 5, x > 10 is False. x == 5 is True, so 'B' is printed.",
@@ -187,10 +187,10 @@
       "prompt_text": "What does this output?",
       "code_snippet": "if True and False:\n    print('Yes')\nelse:\n    print('No')",
       "options": [
-        "True",
+        "Yes",
         "No",
         "False",
-        "Yes"
+        "True"
       ],
       "correct_answer": "No",
       "explanation": "True and False evaluates to False, so the else block executes.",
@@ -207,10 +207,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "score = 85\nif score >= 90:\n    print('A')\nelif score >= 80:\n    print('B')\nelif score >= 70:\n    print('C')",
       "options": [
-        "A",
+        "B",
         "C",
         "Nothing",
-        "B"
+        "A"
       ],
       "correct_answer": "B",
       "explanation": "The score is 85. It's not >= 90, but it is >= 80, so 'B' is printed.",
@@ -227,10 +227,10 @@
       "prompt_text": "Fill in the blank to check if a number is even",
       "code_snippet": "if num ___ 2 == 0:\n    print('Even')",
       "options": [
-        "%",
         "/",
-        "//",
-        "**"
+        "%",
+        "**",
+        "//"
       ],
       "correct_answer": "%",
       "explanation": "Modulo (%) returns the remainder. A number is even if the remainder when divided by 2 is 0.",
@@ -247,10 +247,10 @@
       "prompt_text": "Reorder the lines to form a valid if-else statement.",
       "code_snippet": "",
       "options": [
-        "if x > 0:",
-        "print('Positive')",
+        "print('Negative')",
         "else:",
-        "print('Negative')"
+        "print('Positive')",
+        "if x > 0:"
       ],
       "correct_answer": "['if x > 0:', 'print(\\'Positive\\')', 'else:', 'print(\\'Negative\\')']",
       "explanation": "The if statement comes first, followed by its indented block, then the else statement, and its block.",
@@ -267,10 +267,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "x = 10\nif x % 2 == 0:\n    print('Even')\nelse:\n    print('Odd')",
       "options": [
-        "Even",
         "True",
-        "Odd",
-        "False"
+        "False",
+        "Even",
+        "Odd"
       ],
       "correct_answer": "Even",
       "explanation": "10 % 2 is 0. The if condition evaluates to True, printing 'Even'.",
@@ -287,8 +287,8 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "val = -5\nif val > 0:\n    print('Pos')\nelif val < 0:\n    print('Neg')\nelse:\n    print('Zero')",
       "options": [
-        "Neg",
         "Error",
+        "Neg",
         "Pos",
         "Zero"
       ],
@@ -308,9 +308,9 @@
       "code_snippet": "s = ''\nif s == ___:\n    print('Empty')",
       "options": [
         "''",
-        "0",
+        "False",
         "None",
-        "False"
+        "0"
       ],
       "correct_answer": "''",
       "explanation": "An empty string is denoted by '' or \"\".",

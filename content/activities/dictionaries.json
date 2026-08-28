@@ -7,10 +7,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "d = {'India': 'Delhi', 'Japan': 'Tokyo', 'Cuba': 'Havana'}\nprint(d['Japan'])",
       "options": [
-        "Havana",
-        "KeyError",
+        "Tokyo",
         "Japan",
-        "Tokyo"
+        "Havana",
+        "KeyError"
       ],
       "correct_answer": "Tokyo",
       "explanation": "Dictionary elements are accessed by key. d['Japan'] returns the value mapped to key 'Japan', which is 'Tokyo'.",
@@ -27,9 +27,9 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "d = {'a': 1, 'b': 2}\nprint(len(d))",
       "options": [
-        "{'a': 1, 'b': 2}",
-        "1",
         "Error",
+        "1",
+        "{'a': 1, 'b': 2}",
         "2"
       ],
       "correct_answer": "2",
@@ -47,10 +47,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "d = {'a': 1, 'b': 1, 'a': 2}\nprint(d['a'])",
       "options": [
-        "1",
         "2",
-        "Error: duplicate key",
-        "[1, 2]"
+        "[1, 2]",
+        "1",
+        "Error: duplicate key"
       ],
       "correct_answer": "2",
       "explanation": "Duplicate keys overwrite each other — only the last assignment is kept. 'a' is set to 1 then overwritten with 2.",
@@ -68,8 +68,8 @@
       "code_snippet": "d = {'india': 'delhi', 'japan': 'tokyo', 'cuba': 'havana'}\ndel d['japan']\nprint(d)",
       "options": [
         "{'india': 'delhi', 'cuba': 'havana'}",
-        "{'india': 'delhi', 'japan': 'tokyo', 'cuba': 'havana'}",
         "{'japan': 'tokyo'}",
+        "{'india': 'delhi', 'japan': 'tokyo', 'cuba': 'havana'}",
         "KeyError"
       ],
       "correct_answer": "{'india': 'delhi', 'cuba': 'havana'}",
@@ -87,10 +87,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "d = {'India': 'Delhi', 'Japan': 'Tokyo'}\nprint(d.get('China'))",
       "options": [
-        "False",
         "Error",
-        "None",
-        "KeyError"
+        "KeyError",
+        "False",
+        "None"
       ],
       "correct_answer": "None",
       "explanation": "d.get(key) returns None if the key does not exist, unlike d[key] which raises a KeyError.",
@@ -107,9 +107,9 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "d = {1: 11, 2: 22, 3: 33}\nprint(list(d.keys()))",
       "options": [
-        "[11, 22, 33]",
-        "dict_keys([1, 2, 3])",
         "{1, 2, 3}",
+        "dict_keys([1, 2, 3])",
+        "[11, 22, 33]",
         "[1, 2, 3]"
       ],
       "correct_answer": "[1, 2, 3]",
@@ -147,10 +147,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "d = {'a': 1, 'b': 2}\nd.clear()\nprint(d)",
       "options": [
-        "{}",
         "{'a': 1, 'b': 2}",
+        "None",
         "Error",
-        "None"
+        "{}"
       ],
       "correct_answer": "{}",
       "explanation": "clear() removes all items from the dictionary. Printing d afterwards shows an empty dict {}.",

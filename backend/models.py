@@ -21,6 +21,9 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     role = Column(String, nullable=False, default="student")  # 'student' | 'instructor'
     style_profile = Column(JSON, nullable=True) # E.g., {'explanation': 'conceptual', 'pacing': 'normal'}
+    streak = Column(Integer, nullable=False, default=0)
+    best_streak = Column(Integer, nullable=False, default=0)
+    xp = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class Mastery(Base):

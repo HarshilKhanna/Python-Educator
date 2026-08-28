@@ -7,10 +7,10 @@
       "prompt_text": "Assume 'Row.txt' contains exactly one line: 'Row row row your boat\\n'. What does this code print?",
       "code_snippet": "f = open('Row.txt', 'r')\nf1 = f.readlines()\nprint(len(f1))",
       "options": [
+        "5",
         "Error",
         "1",
-        "0",
-        "5"
+        "0"
       ],
       "correct_answer": "1",
       "explanation": "readlines() returns a list where each element is one line of the file. A file with one line produces a list of length 1.",
@@ -47,10 +47,10 @@
       "prompt_text": "Assume 'Row.txt' contains: 'Row row row your boat\\n'. What does this code print?",
       "code_snippet": "f = open('Row.txt', 'r')\nf1 = f.readlines()\nline = f1[0].strip()\nprint(line)",
       "options": [
-        "Row row row your boat",
+        "Row row row your boat\\n",
         "Error",
         "['Row', 'row', 'row', 'your', 'boat']",
-        "Row row row your boat\\n"
+        "Row row row your boat"
       ],
       "correct_answer": "Row row row your boat",
       "explanation": "strip() removes leading and trailing whitespace including \\n. The result is the line text without the newline character.",
@@ -67,10 +67,10 @@
       "prompt_text": "Assume 'Row.txt' contains: 'Row row row your boat\\n'. What does this code print?",
       "code_snippet": "f = open('Row.txt', 'r')\nf1 = f.readlines()\nline = f1[0].strip()\nwords = line.split()\nprint(len(words))",
       "options": [
-        "1",
-        "5",
         "Error",
-        "4"
+        "5",
+        "4",
+        "1"
       ],
       "correct_answer": "5",
       "explanation": "After strip(), line = 'Row row row your boat'. split() with no argument splits on spaces → 5 words.",
@@ -87,10 +87,10 @@
       "prompt_text": "Assume 'Row.txt' has 4 lines (the nursery rhyme). What does this code print?",
       "code_snippet": "f = open('Row.txt', 'r')\nf1 = f.readlines()\nf2 = []\nfor i in f1:\n    x = i.strip()\n    x = x.split()\n    f2.append(x)\nprint(len(f2))",
       "options": [
-        "1",
-        "Error",
         "0",
-        "4"
+        "4",
+        "Error",
+        "1"
       ],
       "correct_answer": "4",
       "explanation": "The loop processes each of the 4 lines and appends a word-list to f2. len(f2) equals the number of lines, which is 4.",
@@ -109,8 +109,8 @@
       "options": [
         "['Row row row your boat']",
         "['Row', 'row', 'row', 'your', 'boat']",
-        "'Row row row your boat'",
-        "Row"
+        "Row",
+        "'Row row row your boat'"
       ],
       "correct_answer": "['Row', 'row', 'row', 'your', 'boat']",
       "explanation": "strip() removes \\n, then split() breaks the line into individual words. f2[0] is the word-list for the first line.",
@@ -127,10 +127,10 @@
       "prompt_text": "What string do you pass to open() to open a file for reading?",
       "code_snippet": "f = open('myfile.txt', ___)\n# What goes in the blank?",
       "options": [
-        "'r'",
+        "'w'",
         "True",
         "'read'",
-        "'w'"
+        "'r'"
       ],
       "correct_answer": "'r'",
       "explanation": "The mode string 'r' opens the file for reading. This is the mode used throughout the handbook chapter.",

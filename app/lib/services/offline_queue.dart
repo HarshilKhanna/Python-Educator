@@ -16,9 +16,9 @@
 library;
 
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
 
 import 'api_client.dart';
 import 'auth_service.dart';
@@ -28,106 +28,99 @@ import 'auth_service.dart';
 typedef TokenExpiredCallback = void Function();
 
 class OfflineQueue {
-  static const String _queueKey = 'offline_answer_queue';
+  static const String _dbName = 'offline_queue.db';
+  static const String _tableName = 'failed_submissions';
+  Database? _db;
 
-  /// Adds a failed submission to the local queue, capturing the current token.
-  ///
-  /// If there is no token (user is somehow not logged in), the item is still
-  /// queued but will fail at sync time with an AuthException — surfaced to the
-  /// caller via [onTokenExpired].
+  Future<Database> get database async {
+    if (_db != null) return _db!;
+    _db = await _initDB();
+    return _db!;
+  }
+
+  Future<Database> _initDB() async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, _dbName);
+
+    return await openDatabase(
+      path,
+      version: 1,
+      onCreate: (db, version) async {
+        await db.execute('''
+          CREATE TABLE $_tableName (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            activityId TEXT NOT NULL,
+            submittedAnswer TEXT NOT NULL,
+            authToken TEXT,
+            enqueuedAt TEXT NOT NULL
+          )
+        ''');
+      },
+    );
+  }
+
+  /// Adds a failed submission to the local SQLite queue, capturing the current token.
   Future<void> enqueueAnswer({
     required String activityId,
     required String submittedAnswer,
     String? authToken,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
-    final queue = prefs.getStringList(_queueKey) ?? [];
-
-    final item = jsonEncode({
+    final db = await database;
+    await db.insert(_tableName, {
       'activityId': activityId,
       'submittedAnswer': submittedAnswer,
-      // Token stored so we can re-submit with correct identity even if the
-      // currently active user has changed (e.g., shared device).
       'authToken': authToken,
       'enqueuedAt': DateTime.now().toIso8601String(),
     });
-
-    queue.add(item);
-    await prefs.setStringList(_queueKey, queue);
   }
 
   /// Attempts to sync all queued items to the backend.
-  ///
   /// Returns the number of items successfully synced.
-  ///
-  /// [onTokenExpired] is called (and sync is halted) if the token for the
-  /// front-of-queue item is expired. The item is NOT dropped — the user must
-  /// re-authenticate before the queue can drain.
   Future<int> syncQueue({
     TokenExpiredCallback? onTokenExpired,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
-    final queue = prefs.getStringList(_queueKey) ?? [];
+    final db = await database;
+    final items = await db.query(_tableName, orderBy: 'enqueuedAt ASC');
 
-    if (queue.isEmpty) return 0;
+    if (items.isEmpty) return 0;
 
     int syncedCount = 0;
-    final List<String> failedItems = [];
 
-    for (final itemStr in queue) {
-      final item = jsonDecode(itemStr) as Map<String, dynamic>;
+    for (final item in items) {
       final token = item['authToken'] as String?;
+      final id = item['id'] as int;
 
-      // ── Token expiry check ────────────────────────────────────────────────
       if (token == null || authService.isTokenExpired(token)) {
-        // Token is gone or expired — do NOT drop the item, do NOT submit.
-        // Surface the re-login prompt and stop processing.
         onTokenExpired?.call();
-        // Re-add all remaining items (including this one) to the queue.
-        failedItems.add(itemStr);
-        final remaining = queue.skip(syncedCount + failedItems.length);
-        failedItems.addAll(remaining);
         break;
       }
 
-      // ── Attempt submission ────────────────────────────────────────────────
       try {
         await _submitWithToken(
           token: token,
           activityId: item['activityId'] as String,
           submittedAnswer: item['submittedAnswer'] as String,
         );
+        // On success, remove from DB
+        await db.delete(_tableName, where: 'id = ?', whereArgs: [id]);
         syncedCount++;
       } on AuthException {
-        // 401 from the server — token was accepted client-side but rejected
-        // server-side (e.g., revoked). Treat the same as expiry.
         onTokenExpired?.call();
-        failedItems.add(itemStr);
-        final remaining = queue.skip(syncedCount + failedItems.length);
-        failedItems.addAll(remaining);
         break;
       } catch (_) {
-        // Network error — keep the item, stop processing to avoid hammering.
-        failedItems.add(itemStr);
-        final remaining = queue.skip(syncedCount + failedItems.length);
-        failedItems.addAll(remaining);
         break;
       }
     }
-
-    await prefs.setStringList(_queueKey, failedItems);
     return syncedCount;
   }
 
   /// Returns the number of items currently waiting in the queue.
   Future<int> pendingCount() async {
-    final prefs = await SharedPreferences.getInstance();
-    return (prefs.getStringList(_queueKey) ?? []).length;
+    final db = await database;
+    final count = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM $_tableName'));
+    return count ?? 0;
   }
 
-  /// Submit a single queued item using its stored token (not the currently
-  /// active session token). This allows older queued answers from this session
-  /// to drain correctly even if the user has re-authenticated.
   Future<void> _submitWithToken({
     required String token,
     required String activityId,

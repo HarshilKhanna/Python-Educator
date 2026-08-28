@@ -38,7 +38,8 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file:
-      - ./backend/.env.dev       # gitignored; copy .env.example and fill in values
+      - path: ./backend/.env.dev
+        required: false
     environment:
       # Override DATABASE_URL to use the Docker internal hostname 'db'
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/python_educator

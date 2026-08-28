@@ -7,9 +7,9 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "x = [10, 20, 30, 40]\nprint(x[1])",
       "options": [
-        "20",
         "Error: index out of range",
         "30",
+        "20",
         "10"
       ],
       "correct_answer": "20",
@@ -27,9 +27,9 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "x = [10, 20, 30, 40]\nprint(x[-1])",
       "options": [
-        "10",
         "-1",
         "30",
+        "10",
         "40"
       ],
       "correct_answer": "40",
@@ -49,8 +49,8 @@
       "options": [
         "[11, 22, 33]",
         "[0, 11, 22]",
-        "[11, 22, 33, 44]",
-        "[22, 33, 44]"
+        "[22, 33, 44]",
+        "[11, 22, 33, 44]"
       ],
       "correct_answer": "[11, 22, 33]",
       "explanation": "x[1:4] slices from index 1 up to (not including) index 4: elements at positions 1, 2, 3 → 11, 22, 33.",
@@ -67,10 +67,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "x = [3, 1, 4, 1, 5]\nx.sort()\nprint(x)",
       "options": [
-        "[3, 1, 4, 1, 5]",
-        "[1, 1, 3, 4, 5]",
         "[5, 4, 3, 1, 1]",
-        "[1, 3, 4, 5]"
+        "[1, 1, 3, 4, 5]",
+        "[1, 3, 4, 5]",
+        "[3, 1, 4, 1, 5]"
       ],
       "correct_answer": "[1, 1, 3, 4, 5]",
       "explanation": "x.sort() sorts the list in-place in ascending order. Duplicates (1 appears twice) are preserved.",
@@ -88,9 +88,9 @@
       "code_snippet": "x = [1, 2, 3]\nx.append(4)\nprint(len(x))",
       "options": [
         "5",
-        "4",
         "[1, 2, 3, 4]",
-        "3"
+        "3",
+        "4"
       ],
       "correct_answer": "4",
       "explanation": "append() adds one element to the end. x goes from length 3 to length 4.",
@@ -107,10 +107,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "x = [1, 2, 3, 4, 5]\ny = [i * i for i in x]\nprint(y)",
       "options": [
-        "[1, 2, 3, 4, 5]",
         "[2, 4, 6, 8, 10]",
-        "[1, 4, 9, 16, 25]",
-        "[1, 4, 9]"
+        "[1, 4, 9]",
+        "[1, 2, 3, 4, 5]",
+        "[1, 4, 9, 16, 25]"
       ],
       "correct_answer": "[1, 4, 9, 16, 25]",
       "explanation": "List comprehension [i*i for i in x] squares each element: 1→1, 2→4, 3→9, 4→16, 5→25.",
@@ -127,10 +127,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "marks = [55, 90, 33, 69]\nsum = 0\nfor i in range(len(marks)):\n    sum = sum + marks[i]\nprint(sum)",
       "options": [
-        "4",
-        "247",
         "55",
-        "Error"
+        "Error",
+        "247",
+        "4"
       ],
       "correct_answer": "247",
       "explanation": "Iterating by index: sum = 0+55+90+33+69 = 247.",
@@ -147,10 +147,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "x = [1, 2, 3]\nprint(x[-2])",
       "options": [
+        "2",
         "1",
         "-2",
-        "3",
-        "2"
+        "3"
       ],
       "correct_answer": "2",
       "explanation": "x[-1]=3 (last), x[-2]=2 (second from last), x[-3]=1 (first). Negative indexing counts from the right starting at -1.",

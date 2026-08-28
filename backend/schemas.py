@@ -29,6 +29,8 @@ class AnswerResponse(BaseModel):
     mastery: float
     correct: bool
     explanation: str
+    streak: int
+    xp: int
 
 class TutorFeedbackRequest(BaseModel):
     topic_id: str

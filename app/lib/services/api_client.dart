@@ -63,7 +63,7 @@ class ApiClient {
   // ── Answers ───────────────────────────────────────────────────────────────
 
   /// Submit an answer. [confidence] is the student's self-reported certainty (0–1).
-  Future<double> submitAnswer({
+  Future<Map<String, dynamic>> submitAnswer({
     required String activityId,
     required String submittedAnswer,
     double? confidence,
@@ -82,7 +82,7 @@ class ApiClient {
     );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      return (data['mastery'] as num).toDouble();
+      return data as Map<String, dynamic>;
     } else if (response.statusCode == 401) {
       throw AuthException('Session expired. Please log in again.');
     } else {
