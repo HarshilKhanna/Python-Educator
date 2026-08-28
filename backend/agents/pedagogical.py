@@ -127,7 +127,7 @@ async def pedagogical_agent_node(
     mastery_rows = result.scalars().all()
     mastery_map = {row.topic_id: row.mastery_level for row in mastery_rows}
 
-    # 2. Read recent adaptation events for repetition-avoidance
+    # 2. Read recent adaptation events for repetition-avoidance and stuck-detection
     stmt2 = (
         select(AdaptationEvent)
         .where(AdaptationEvent.student_id == student_id)
@@ -138,6 +138,13 @@ async def pedagogical_agent_node(
     recent_events = result2.scalars().all()
     recent_topic_id = recent_events[0].topic_id if recent_events else None
     recent_activity_types = _recent_activity_types(recent_events)
+
+    # Detect if student is stuck: 3 consecutive wrong answers on the most recent topic
+    stuck_on_topic = None
+    if len(recent_events) >= 3:
+        first_topic = recent_events[0].topic_id
+        if all(e.topic_id == first_topic and e.signal == "incorrect" for e in recent_events[:3]):
+            stuck_on_topic = first_topic
 
     # 3. Walk curriculum in prerequisite order to find the right topic
     for topic_id in CURRICULUM_ORDER:
@@ -151,15 +158,20 @@ async def pedagogical_agent_node(
         if mastery < MASTERY_THRESHOLD:
             activity_type = _pick_activity_type(recent_activity_types)
 
-            if mastery == 0.0 and topic_id not in mastery_map:
-                # Brand new topic with no history
-                reason = f"Student has not started '{topic_id}' yet. Starting with basics."
-            elif recent_topic_id == topic_id:
+            if stuck_on_topic == topic_id:
                 reason = (
                     f"Student is stuck on '{topic_id}' "
-                    f"(mastery={mastery:.2f} < threshold={MASTERY_THRESHOLD}). "
-                    f"Recommending remediation."
+                    f"(3 consecutive wrong answers). Recommending remediation."
                 )
+                return PedagogicalDecision(
+                    next_topic_id=topic_id,
+                    next_activity_type=activity_type,
+                    reason=reason,
+                    confidence=0.4, # Low confidence triggers high risk -> pending queue
+                )
+            elif mastery == 0.0 and topic_id not in mastery_map:
+                # Brand new topic with no history
+                reason = f"Student has not started '{topic_id}' yet. Starting with basics."
             else:
                 reason = (
                     f"Student has not mastered '{topic_id}' "

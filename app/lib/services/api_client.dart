@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/activity.dart';
+import '../config.dart';
 import 'auth_service.dart';
 
 /// Recommendation from the Pedagogical Agent via GET /activities/next.
@@ -28,7 +29,7 @@ class NextActivityRecommendation {
 }
 
 class ApiClient {
-  static const String baseUrl = 'http://localhost:8000';
+  static String get baseUrl => backendBaseUrl;
 
   Future<Map<String, String>> _authHeaders() async {
     final token = await authService.getToken();
@@ -57,24 +58,7 @@ class ApiClient {
     }
   }
 
-  /// Ask the Pedagogical Agent what to practice next.
-  /// Returns a recommendation with topic, activity type, and reason.
-  Future<NextActivityRecommendation> fetchNextActivity() async {
-    final headers = await _authHeaders();
-    final response = await http.get(
-      Uri.parse('$baseUrl/activities/next'),
-      headers: headers,
-    );
-    if (response.statusCode == 200) {
-      return NextActivityRecommendation.fromJson(
-        jsonDecode(response.body) as Map<String, dynamic>,
-      );
-    } else if (response.statusCode == 401) {
-      throw AuthException('Session expired. Please log in again.');
-    } else {
-      throw Exception('Failed to fetch next activity: ${response.statusCode}');
-    }
-  }
+
 
   // ── Answers ───────────────────────────────────────────────────────────────
 
@@ -111,13 +95,17 @@ class ApiClient {
   /// Send a free-text message to the tutor agent.
   Future<Map<String, dynamic>> tutorChat({
     required String message,
-    required String topicId,
+    String? topicId,
   }) async {
     final headers = await _authHeaders();
+    final body = <String, dynamic>{'message': message};
+    if (topicId != null) {
+      body['topic_id'] = topicId;
+    }
     final response = await http.post(
       Uri.parse('$baseUrl/tutor/interact'),
       headers: headers,
-      body: jsonEncode({'message': message, 'topic_id': topicId}),
+      body: jsonEncode(body),
     );
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;

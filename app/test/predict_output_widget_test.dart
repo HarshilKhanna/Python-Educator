@@ -59,6 +59,10 @@ void main() {
     await tester.tap(find.text('2'));
     await tester.pumpAndSettle();
     
+    // Simulate confidence check-in submission
+    container.read(activitySessionProvider.notifier).submitStagedAnswer(0.8);
+    await tester.pumpAndSettle();
+    
     // Wait for fire-and-forget network call to fail and set isOffline
     await tester.pump(const Duration(milliseconds: 500));
     
@@ -75,6 +79,10 @@ void main() {
 
     // Tap incorrect option
     await tester.tap(find.text('3'));
+    await tester.pumpAndSettle();
+    
+    // Simulate confidence check-in submission
+    container.read(activitySessionProvider.notifier).submitStagedAnswer(0.8);
     await tester.pumpAndSettle();
     
     await tester.pump(const Duration(milliseconds: 500));

@@ -7,10 +7,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "for i in range(5, 0, -1):\n    print(i)",
       "options": [
-        "5\n4\n3\n2\n1",
-        "4\n3\n2\n1\n0",
+        "Nothing is printed",
         "5\n4\n3\n2\n1\n0",
-        "Nothing is printed"
+        "5\n4\n3\n2\n1",
+        "4\n3\n2\n1\n0"
       ],
       "correct_answer": "5\n4\n3\n2\n1",
       "explanation": "range(5, 0, -1) counts down from 5, stopping before 0. Values: 5, 4, 3, 2, 1.",
@@ -27,8 +27,8 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "for __ in range(3):\n    print('Hello')",
       "options": [
-        "Hello\nHello\nHello",
         "Hello",
+        "Hello\nHello\nHello",
         "__\n__\n__",
         "Error"
       ],
@@ -47,10 +47,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "for i in range(2):\n    for j in range(2):\n        print(i, j)",
       "options": [
-        "0 0\n0 1\n1 0\n1 1",
         "0 0\n1 1",
         "0\n1\n0\n1",
-        "0 0\n0 1"
+        "0 0\n0 1",
+        "0 0\n0 1\n1 0\n1 1"
       ],
       "correct_answer": "0 0\n0 1\n1 0\n1 1",
       "explanation": "The outer loop runs i=0, i=1. For each i, the inner loop runs j=0, j=1. Inner loop completes fully before outer advances.",
@@ -68,8 +68,8 @@
       "code_snippet": "for i in range(3):\n    print(i)\nelse:\n    print('done')",
       "options": [
         "0\n1\n2\ndone",
-        "0\n1\n2",
         "done",
+        "0\n1\n2",
         "Error"
       ],
       "correct_answer": "0\n1\n2\ndone",
@@ -87,10 +87,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "i = 1\nwhile i < 4:\n    print(i)\n    i = i + 1",
       "options": [
-        "1\n2\n3",
         "1\n2\n3\n4",
         "0\n1\n2\n3",
-        "Runs forever"
+        "Runs forever",
+        "1\n2\n3"
       ],
       "correct_answer": "1\n2\n3",
       "explanation": "i starts at 1. Loop prints and increments until i reaches 4, at which point i < 4 is False and the loop ends.",
@@ -107,10 +107,10 @@
       "prompt_text": "If the user types 3 then 0, what does this code print?",
       "code_snippet": "while True:\n    x = int(input())\n    if x == 0:\n        break\n    print(x * x)",
       "options": [
-        "9",
-        "9\n0",
         "3\n9",
-        "0"
+        "0",
+        "9\n0",
+        "9"
       ],
       "correct_answer": "9",
       "explanation": "x=3: 3*3=9 is printed. x=0: break fires before print, loop ends. Only 9 is printed.",
@@ -127,9 +127,9 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "i = 1\nwhile i < 11:\n    print(i)\n    i = i + 1",
       "options": [
-        "1 through 10, one per line",
-        "1 through 11, one per line",
         "0 through 10, one per line",
+        "1 through 11, one per line",
+        "1 through 10, one per line",
         "Runs forever"
       ],
       "correct_answer": "1 through 10, one per line",
@@ -147,10 +147,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "for i in range(1, 4):\n    for j in range(1, 3):\n        print(i * j)",
       "options": [
-        "1\n2\n2\n4\n3\n6",
-        "1\n2\n3\n2\n4\n6",
         "1\n4\n9",
-        "2\n4\n6"
+        "1\n2\n3\n2\n4\n6",
+        "2\n4\n6",
+        "1\n2\n2\n4\n3\n6"
       ],
       "correct_answer": "1\n2\n2\n4\n3\n6",
       "explanation": "i=1: j=1→1*1=1, j=2→1*2=2. i=2: j=1→2*1=2, j=2→2*2=4. i=3: j=1→3*1=3, j=2→3*2=6.",
@@ -367,6 +367,146 @@
         "    for j in range(1, 4):"
       ],
       "correct_answer": "for i in range(1, 4):|    for j in range(1, 4):|        print(i, j, i * j)"
+    },
+    {
+      "id": "96e56e0b-b3b4-4dfc-8472-e244ad6d2052",
+      "topic_id": "loops",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "for i in range(2):\n    print('Hi')",
+      "options": [
+        "Hi\\nHi\\nHi",
+        "Hi",
+        "Hi\\nHi",
+        "Nothing"
+      ],
+      "correct_answer": "Hi\\nHi",
+      "explanation": "range(2) generates [0, 1]. The loop runs twice.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.1 for loops"
+      }
+    },
+    {
+      "id": "b1ef3c74-0741-4a62-aeac-2aa5fb84c787",
+      "topic_id": "loops",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this loop output?",
+      "code_snippet": "count = 0\nwhile count < 3:\n    print(count)\n    count += 1",
+      "options": [
+        "3",
+        "1\\n2\\n3",
+        "0\\n1\\n2\\n3",
+        "0\\n1\\n2"
+      ],
+      "correct_answer": "0\\n1\\n2",
+      "explanation": "The while loop runs as long as count < 3. It prints 0, 1, and 2.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.2 while loops"
+      }
+    },
+    {
+      "id": "f8ae40a0-b10d-4647-8f3f-6ba8e48882a5",
+      "topic_id": "loops",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "for i in range(5):\n    if i == 3:\n        break\n    print(i)",
+      "options": [
+        "3",
+        "0\\n1\\n2\\n4",
+        "0\\n1\\n2",
+        "0\\n1\\n2\\n3\\n4"
+      ],
+      "correct_answer": "0\\n1\\n2",
+      "explanation": "The break statement exits the loop when i is 3.",
+      "difficulty": 3,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.3 Break and Continue"
+      }
+    },
+    {
+      "id": "bdfc041a-b030-4e65-b29d-17a60cd05d17",
+      "topic_id": "loops",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "for i in range(3):\n    if i == 1:\n        continue\n    print(i)",
+      "options": [
+        "0",
+        "0\\n2",
+        "0\\n1\\n2",
+        "1"
+      ],
+      "correct_answer": "0\\n2",
+      "explanation": "The continue statement skips the rest of the loop when i is 1, so 1 is not printed.",
+      "difficulty": 3,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.3 Break and Continue"
+      }
+    },
+    {
+      "id": "7eaef154-ce06-4f0f-bea2-8b5ad786db7f",
+      "topic_id": "loops",
+      "activity_type": "fill_blank",
+      "prompt_text": "Fill in the blank to loop 10 times",
+      "code_snippet": "for i in ___(10):\n    print(i)",
+      "options": [
+        "range",
+        "list",
+        "array",
+        "count"
+      ],
+      "correct_answer": "range",
+      "explanation": "range(10) creates an iterable of 10 items from 0 to 9.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.1 for loops"
+      }
+    },
+    {
+      "id": "5174b88e-5767-40c7-90a7-f6081b8dd0c3",
+      "topic_id": "loops",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this loop output?",
+      "code_snippet": "total = 0\nfor i in [1, 2, 3]:\n    total += i\nprint(total)",
+      "options": [
+        "6",
+        "3",
+        "0",
+        "123"
+      ],
+      "correct_answer": "6",
+      "explanation": "The loop iterates through 1, 2, 3 and adds them: 1 + 2 + 3 = 6.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.1 for loops"
+      }
+    },
+    {
+      "id": "d3820f21-f7f2-4e8d-bd7e-f64be03b5fa6",
+      "topic_id": "loops",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "x = 2\nwhile x > 0:\n    print(x)\n    x -= 1",
+      "options": [
+        "2",
+        "2\\n1",
+        "1\\n0",
+        "2\\n1\\n0"
+      ],
+      "correct_answer": "2\\n1",
+      "explanation": "The while loop runs as long as x > 0. It prints 2, then 1.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "03-loops.md",
+        "heading": "4.2 while loops"
+      }
     }
   ]
 }

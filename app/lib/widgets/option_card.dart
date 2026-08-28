@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 /// Visual state of a single option card.
 enum OptionState {
   idle,      // not yet answered
+  staged,    // selected by user, awaiting confidence check
   correct,   // this option is the right answer (shown after answering)
   incorrect, // learner picked this — and it is wrong
 }
@@ -40,7 +41,7 @@ class OptionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: state == OptionState.idle ? onTap : null,
+          onTap: (state == OptionState.idle || state == OptionState.staged) ? onTap : null,
           splashColor: const Color(0xFF6366F1).withValues(alpha: 0.15),
           highlightColor: Colors.transparent,
           child: Padding(
@@ -116,6 +117,14 @@ class OptionCard extends StatelessWidget {
           badgeBg: Color(0xFFEF4444),
           badgeText: Colors.white,
           text: Color(0xFFFEE2E2),
+        );
+      case OptionState.staged:
+        return const _OptionColors(
+          bg: Color(0xFF1E243A),
+          border: Color(0xFF6366F1),
+          badgeBg: Color(0xFF6366F1),
+          badgeText: Colors.white,
+          text: Colors.white,
         );
       case OptionState.idle:
         return const _OptionColors(

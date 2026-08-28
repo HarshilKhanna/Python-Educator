@@ -2,15 +2,15 @@
   "activities": [
     {
       "id": "8b13a204-ad66-470d-8938-6e80be450b98",
-      "topic_id": "basics_operators",
+      "topic_id": "basics-operators",
       "activity_type": "predict_output",
       "prompt_text": "What does this code print?",
       "code_snippet": "for i in range(1, 4):\n    print(i)",
       "options": [
-        "1\n2\n3",
-        "1\n2\n3\n4",
         "0\n1\n2\n3",
-        "Nothing is printed"
+        "1\n2\n3\n4",
+        "Nothing is printed",
+        "1\n2\n3"
       ],
       "correct_answer": "1\n2\n3",
       "explanation": "range(1, 4) produces values 1, 2, 3 (stop value 4 is excluded). The loop prints each on its own line.",
@@ -22,15 +22,15 @@
     },
     {
       "id": "3ecb33e9-1362-46fa-981c-1d1118ba7731",
-      "topic_id": "basics_operators",
+      "topic_id": "basics-operators",
       "activity_type": "predict_output",
       "prompt_text": "What does this code print?",
       "code_snippet": "for i in range(0, 10, 3):\n    print(i)",
       "options": [
-        "0\n3\n6\n9",
-        "0\n3\n6",
+        "0\n3\n6\n9\n12",
         "3\n6\n9",
-        "0\n3\n6\n9\n12"
+        "0\n3\n6",
+        "0\n3\n6\n9"
       ],
       "correct_answer": "0\n3\n6\n9",
       "explanation": "range(0, 10, 3) steps by 3: 0, 3, 6, 9. The next value would be 12 which is ≥ 10, so the loop stops.",
@@ -42,15 +42,15 @@
     },
     {
       "id": "7ad2ded5-1c45-40de-b099-b8ddc2efc286",
-      "topic_id": "basics_operators",
+      "topic_id": "basics-operators",
       "activity_type": "predict_output",
       "prompt_text": "What does this code print?",
       "code_snippet": "print(9 % 4)",
       "options": [
-        "1",
         "2",
+        "0",
         "2.25",
-        "0"
+        "1"
       ],
       "correct_answer": "1",
       "explanation": "% is the modulus (remainder) operator. 9 divided by 4 gives quotient 2 and remainder 1. The % operator returns that remainder.",
@@ -62,13 +62,13 @@
     },
     {
       "id": "c37f5d88-03cf-42f7-9d4d-4c9ff3509619",
-      "topic_id": "basics_operators",
+      "topic_id": "basics-operators",
       "activity_type": "predict_output",
       "prompt_text": "What does this code print?",
       "code_snippet": "print(5 ** 2)",
       "options": [
-        "25",
         "10",
+        "25",
         "52",
         "Error"
       ],
@@ -82,14 +82,14 @@
     },
     {
       "id": "9ac2ae08-21ff-4e82-9ae2-7f5f24e8e908",
-      "topic_id": "basics_operators",
+      "topic_id": "basics-operators",
       "activity_type": "predict_output",
       "prompt_text": "What does this code print?",
       "code_snippet": "print(5 / 2)",
       "options": [
         "2.5",
-        "2",
         "3",
+        "2",
         "2.0"
       ],
       "correct_answer": "2.5",
@@ -102,15 +102,15 @@
     },
     {
       "id": "a86d07c1-801d-43df-95af-be1ce232be2d",
-      "topic_id": "basics_operators",
+      "topic_id": "basics-operators",
       "activity_type": "predict_output",
       "prompt_text": "What is the value of `a` after these two statements run?",
       "code_snippet": "a = 5\na = a + 3\nprint(a)",
       "options": [
         "8",
-        "5",
+        "53",
         "3",
-        "53"
+        "5"
       ],
       "correct_answer": "8",
       "explanation": "The first statement assigns 5 to a. The second reads the current value of a (5), adds 3, and stores the new value (8) back into a. Always read the right-hand side first.",
@@ -122,15 +122,15 @@
     },
     {
       "id": "4bdb884c-1c1d-4434-8a8f-ac372902a29f",
-      "topic_id": "basics_operators",
+      "topic_id": "basics-operators",
       "activity_type": "predict_output",
       "prompt_text": "What does this code print?",
       "code_snippet": "a = 5\nb = 100\na = b\nb = a\nprint(a, b)",
       "options": [
-        "100 100",
-        "100 5",
         "5 100",
-        "5 5"
+        "100 5",
+        "5 5",
+        "100 100"
       ],
       "correct_answer": "100 100",
       "explanation": "After a=b, a becomes 100. Then b=a stores a's current value (100) into b — so both end up as 100. This is the classic swap trap: you need a temporary variable to actually swap.",
@@ -142,14 +142,14 @@
     },
     {
       "id": "bce0af2b-79b8-42de-88ef-d87de876684f",
-      "topic_id": "basics_operators",
+      "topic_id": "basics-operators",
       "activity_type": "predict_output",
       "prompt_text": "What does this code print?",
       "code_snippet": "for i in range(1, 4):\n    print(i * i)",
       "options": [
-        "1\n4\n9",
         "1\n2\n3",
         "2\n4\n6",
+        "1\n4\n9",
         "1\n4\n9\n16"
       ],
       "correct_answer": "1\n4\n9",
@@ -158,6 +158,106 @@
       "source_section": {
         "file": "01-basics-operators.md",
         "heading": "2.5 : Summing Instead of Displaying Numbers using for loops"
+      }
+    },
+    {
+      "id": "9a051e9f-82c1-4319-9db6-c6b54c880618",
+      "topic_id": "basics-operators",
+      "activity_type": "predict_output",
+      "prompt_text": "What does this code print?",
+      "code_snippet": "print(10 // 3)",
+      "options": [
+        "3",
+        "1",
+        "3.33",
+        "4"
+      ],
+      "correct_answer": "3",
+      "explanation": "// is integer division, which drops the fractional part.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "01-basics-operators.md",
+        "heading": "2.2 Arithmetic Operators in Python"
+      }
+    },
+    {
+      "id": "95b017ca-fa0d-4096-816c-a36d8f02a597",
+      "topic_id": "basics-operators",
+      "activity_type": "predict_output",
+      "prompt_text": "What is the value of `x` after this code runs?",
+      "code_snippet": "x = 7\nx += 2\nx -= 1\nprint(x)",
+      "options": [
+        "7",
+        "9",
+        "8",
+        "6"
+      ],
+      "correct_answer": "8",
+      "explanation": "x becomes 9, then 8.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "01-basics-operators.md",
+        "heading": "2.3 Assignment and Comparison Operators in Python"
+      }
+    },
+    {
+      "id": "6db31fc9-0adb-4f0a-be41-acb016639a70",
+      "topic_id": "basics-operators",
+      "activity_type": "fill_blank",
+      "prompt_text": "Fill in the blank to print 'Hello World'",
+      "code_snippet": "___('Hello World')",
+      "options": [
+        "print",
+        "echo",
+        "System.out.println",
+        "display"
+      ],
+      "correct_answer": "print",
+      "explanation": "Python uses print() to output text.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "01-basics-operators.md",
+        "heading": "1.1 Introduction"
+      }
+    },
+    {
+      "id": "b68bf5dd-c3e9-4d2c-a894-e7af8f617b7d",
+      "topic_id": "basics-operators",
+      "activity_type": "predict_output",
+      "prompt_text": "What is the output of this modulo operation?",
+      "code_snippet": "print(14 % 5)",
+      "options": [
+        "3",
+        "0",
+        "4",
+        "2"
+      ],
+      "correct_answer": "4",
+      "explanation": "14 divided by 5 is 2 with a remainder of 4. % gives the remainder.",
+      "difficulty": 1,
+      "source_section": {
+        "file": "01-basics-operators.md",
+        "heading": "2.2 Arithmetic Operators in Python"
+      }
+    },
+    {
+      "id": "08ecb24d-7927-4869-b8e6-39ed3d13b575",
+      "topic_id": "basics-operators",
+      "activity_type": "predict_output",
+      "prompt_text": "What will this output?",
+      "code_snippet": "print(2 ** 3)",
+      "options": [
+        "6",
+        "16",
+        "9",
+        "8"
+      ],
+      "correct_answer": "8",
+      "explanation": "2 to the power of 3 is 2 * 2 * 2 = 8.",
+      "difficulty": 2,
+      "source_section": {
+        "file": "01-basics-operators.md",
+        "heading": "2.2 Arithmetic Operators in Python"
       }
     }
   ]

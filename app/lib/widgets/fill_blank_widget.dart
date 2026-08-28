@@ -29,7 +29,7 @@ class _FillBlankWidgetState extends ConsumerState<FillBlankWidget> {
   void _submit() {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-    ref.read(activitySessionProvider.notifier).selectAnswer(text);
+    ref.read(activitySessionProvider.notifier).stageAnswer(text);
     _focusNode.unfocus();
   }
 
@@ -60,7 +60,7 @@ class _FillBlankWidgetState extends ConsumerState<FillBlankWidget> {
         TextField(
           controller: _controller,
           focusNode: _focusNode,
-          enabled: !isAnswered,
+          enabled: !isAnswered && session.stagedAnswer == null,
           style: const TextStyle(
             color: Color(0xFFE6EDF3),
             fontFamily: 'monospace',
@@ -91,11 +91,11 @@ class _FillBlankWidgetState extends ConsumerState<FillBlankWidget> {
             suffixIcon: IconButton(
               icon: const Icon(Icons.send_rounded),
               color: const Color(0xFF6366F1),
-              onPressed: isAnswered ? null : _submit,
+              onPressed: (isAnswered || session.stagedAnswer != null) ? null : _submit,
             ),
           ),
           onSubmitted: (_) {
-            if (!isAnswered) _submit();
+            if (!isAnswered && session.stagedAnswer == null) _submit();
           },
         ),
         const SizedBox(height: 24),

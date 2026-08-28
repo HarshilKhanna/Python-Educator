@@ -71,7 +71,9 @@ void main() {
     await tester.tap(find.text('Check Answer'));
     await tester.pumpAndSettle();
     
-    await tester.pump(const Duration(milliseconds: 500));
+    // Simulate confidence check-in submission
+    container.read(activitySessionProvider.notifier).submitStagedAnswer(0.8);
+    await tester.pumpAndSettle();
 
     final state = container.read(activitySessionProvider);
     expect(state.isAnswered, isTrue);
@@ -88,7 +90,9 @@ void main() {
     await tester.tap(find.text('Check Answer'));
     await tester.pumpAndSettle();
     
-    await tester.pump(const Duration(milliseconds: 500));
+    // Simulate confidence check-in submission
+    container.read(activitySessionProvider.notifier).submitStagedAnswer(0.8);
+    await tester.pumpAndSettle();
 
     final state = container.read(activitySessionProvider);
     expect(state.isAnswered, isTrue);

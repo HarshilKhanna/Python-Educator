@@ -25,9 +25,12 @@ class PredictOutputWidget extends ConsumerWidget {
   static const _labels = ['A', 'B', 'C', 'D', 'E', 'F'];
 
   OptionState _stateFor(String option, ActivitySessionState session) {
-    if (!session.isAnswered) return OptionState.idle;
-    if (option == activity.correctAnswer) return OptionState.correct;
-    if (option == session.selectedAnswer) return OptionState.incorrect;
+    if (session.isAnswered) {
+      if (option == activity.correctAnswer) return OptionState.correct;
+      if (option == session.selectedAnswer) return OptionState.incorrect;
+      return OptionState.idle;
+    }
+    if (option == session.stagedAnswer) return OptionState.staged;
     return OptionState.idle;
   }
 
@@ -71,7 +74,7 @@ class PredictOutputWidget extends ConsumerWidget {
             text: opt,
             state: _stateFor(opt, session),
             onTap: () =>
-                ref.read(activitySessionProvider.notifier).selectAnswer(opt),
+                ref.read(activitySessionProvider.notifier).stageAnswer(opt),
           );
         }),
 

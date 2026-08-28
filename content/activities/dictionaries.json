@@ -7,10 +7,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "d = {'India': 'Delhi', 'Japan': 'Tokyo', 'Cuba': 'Havana'}\nprint(d['Japan'])",
       "options": [
-        "Tokyo",
-        "Japan",
         "Havana",
-        "KeyError"
+        "KeyError",
+        "Japan",
+        "Tokyo"
       ],
       "correct_answer": "Tokyo",
       "explanation": "Dictionary elements are accessed by key. d['Japan'] returns the value mapped to key 'Japan', which is 'Tokyo'.",
@@ -27,10 +27,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "d = {'a': 1, 'b': 2}\nprint(len(d))",
       "options": [
-        "2",
-        "1",
         "{'a': 1, 'b': 2}",
-        "Error"
+        "1",
+        "Error",
+        "2"
       ],
       "correct_answer": "2",
       "explanation": "len() on a dictionary returns the number of key-value pairs. This dict has two pairs, so len is 2.",
@@ -47,8 +47,8 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "d = {'a': 1, 'b': 1, 'a': 2}\nprint(d['a'])",
       "options": [
-        "2",
         "1",
+        "2",
         "Error: duplicate key",
         "[1, 2]"
       ],
@@ -87,10 +87,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "d = {'India': 'Delhi', 'Japan': 'Tokyo'}\nprint(d.get('China'))",
       "options": [
-        "None",
+        "False",
         "Error",
-        "KeyError",
-        "False"
+        "None",
+        "KeyError"
       ],
       "correct_answer": "None",
       "explanation": "d.get(key) returns None if the key does not exist, unlike d[key] which raises a KeyError.",
@@ -107,10 +107,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "d = {1: 11, 2: 22, 3: 33}\nprint(list(d.keys()))",
       "options": [
-        "[1, 2, 3]",
         "[11, 22, 33]",
         "dict_keys([1, 2, 3])",
-        "{1, 2, 3}"
+        "{1, 2, 3}",
+        "[1, 2, 3]"
       ],
       "correct_answer": "[1, 2, 3]",
       "explanation": "d.keys() returns a dict_keys view; wrapping with list() converts it to a regular list of keys.",
@@ -127,10 +127,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "d = {}\nd['India'] = 'Delhi'\nd['Cuba'] = 'Havana'\nd['India'] = 'New Delhi'\nprint(d['India'])",
       "options": [
-        "New Delhi",
         "Delhi",
+        "None",
         "Error: key already exists",
-        "None"
+        "New Delhi"
       ],
       "correct_answer": "New Delhi",
       "explanation": "Dictionaries are mutable. Assigning to an existing key overwrites its value. The final value for 'India' is 'New Delhi'.",
@@ -148,9 +148,9 @@
       "code_snippet": "d = {'a': 1, 'b': 2}\nd.clear()\nprint(d)",
       "options": [
         "{}",
-        "None",
         "{'a': 1, 'b': 2}",
-        "Error"
+        "Error",
+        "None"
       ],
       "correct_answer": "{}",
       "explanation": "clear() removes all items from the dictionary. Printing d afterwards shows an empty dict {}.",

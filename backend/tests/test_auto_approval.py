@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 """
 test_auto_approval.py — Phase 20 integration tests
 
@@ -70,7 +71,7 @@ def _ped_state(
 @pytest_asyncio.fixture
 async def instructor_token(http_client: AsyncClient) -> str:
     """Create an instructor user and return a JWT."""
-    async with app.dependency_overrides[get_db]() as session:
+    async with asynccontextmanager(app.dependency_overrides[get_db])() as session:
         user = User(email="instructor_auto@test.example", password_hash=hash_password("pw"), role="instructor")
         session.add(user)
         await session.commit()
@@ -98,7 +99,7 @@ async def test_low_risk_auto_applies_not_in_review_queue(
     student_id, student_token = student_auth
 
     # Pre-seed mastery so the student is "currently on" loops
-    async with app.dependency_overrides[get_db]() as session:
+    async with asynccontextmanager(app.dependency_overrides[get_db])() as session:
         mastery = Mastery(student_id=student_id, topic_id="loops", mastery_level=0.4, confidence=0.0)
         session.add(mastery)
         await session.commit()
@@ -121,7 +122,7 @@ async def test_low_risk_auto_applies_not_in_review_queue(
     assert data["pending_adaptation_id"] is None
 
     # Verify DB: adaptation_events row with source="pedagogical_agent_auto"
-    async with app.dependency_overrides[get_db]() as session:
+    async with asynccontextmanager(app.dependency_overrides[get_db])() as session:
         stmt = select(AdaptationEvent).where(
             AdaptationEvent.student_id == student_id,
             AdaptationEvent.source == "pedagogical_agent_auto",
@@ -132,7 +133,7 @@ async def test_low_risk_auto_applies_not_in_review_queue(
         assert events[0].risk_tier == "low"
 
     # Verify NOT in review queue
-    async with app.dependency_overrides[get_db]() as session:
+    async with asynccontextmanager(app.dependency_overrides[get_db])() as session:
         stmt = select(PendingAdaptation).where(
             PendingAdaptation.student_id == student_id,
             PendingAdaptation.status == "pending",
@@ -160,7 +161,7 @@ async def test_high_risk_goes_to_review_queue_no_mastery_change(
     student_id, student_token = student_auth
 
     # Pre-seed mastery: student has conditionals at 0.4 (below threshold)
-    async with app.dependency_overrides[get_db]() as session:
+    async with asynccontextmanager(app.dependency_overrides[get_db])() as session:
         mastery = Mastery(student_id=student_id, topic_id="conditionals", mastery_level=0.4, confidence=0.0)
         session.add(mastery)
         await session.commit()
@@ -184,7 +185,7 @@ async def test_high_risk_goes_to_review_queue_no_mastery_change(
     assert data["pending_adaptation_id"] is not None
 
     # Verify mastery NOT changed
-    async with app.dependency_overrides[get_db]() as session:
+    async with asynccontextmanager(app.dependency_overrides[get_db])() as session:
         stmt = select(Mastery).where(
             Mastery.student_id == student_id, Mastery.topic_id == "conditionals"
         )
@@ -193,7 +194,7 @@ async def test_high_risk_goes_to_review_queue_no_mastery_change(
         assert mastery_row.mastery_level == 0.4, "Mastery must not change for high-risk"
 
     # Verify in review queue
-    async with app.dependency_overrides[get_db]() as session:
+    async with asynccontextmanager(app.dependency_overrides[get_db])() as session:
         stmt = select(PendingAdaptation).where(
             PendingAdaptation.student_id == student_id,
             PendingAdaptation.status == "pending",
@@ -218,7 +219,7 @@ async def test_medium_risk_high_confidence_auto_applies(
     student_id, student_token = student_auth
 
     # Student has mastered basics-operators, currently on conditionals
-    async with app.dependency_overrides[get_db]() as session:
+    async with asynccontextmanager(app.dependency_overrides[get_db])() as session:
         for tid, ml in [("basics-operators", 0.9), ("conditionals", 0.85)]:
             mastery = Mastery(student_id=student_id, topic_id=tid, mastery_level=ml, confidence=0.0)
             session.add(mastery)
@@ -258,7 +259,7 @@ async def test_medium_risk_low_confidence_goes_to_review(
     """
     student_id, student_token = student_auth
 
-    async with app.dependency_overrides[get_db]() as session:
+    async with asynccontextmanager(app.dependency_overrides[get_db])() as session:
         for tid, ml in [("basics-operators", 0.9), ("conditionals", 0.85)]:
             mastery = Mastery(student_id=student_id, topic_id=tid, mastery_level=ml, confidence=0.0)
             session.add(mastery)
@@ -306,7 +307,7 @@ async def test_kill_switch_forces_all_to_review_queue(
     student_id, student_token = student_auth
     _, instructor_token = instructor_auth
 
-    async with app.dependency_overrides[get_db]() as session:
+    async with asynccontextmanager(app.dependency_overrides[get_db])() as session:
         mastery = Mastery(student_id=student_id, topic_id="loops", mastery_level=0.4, confidence=0.0)
         session.add(mastery)
         await session.commit()

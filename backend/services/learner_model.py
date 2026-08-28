@@ -1,3 +1,4 @@
+import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from models import Mastery, AdaptationEvent, AuditLog
@@ -49,6 +50,17 @@ class LearnerModelService:
                 confidence=0.0
             )
             session.add(mastery_record)
+
+        # Apply time decay (forgetting curve) before adding new delta
+        if mastery_record.last_updated:
+            last_updated = mastery_record.last_updated
+            if last_updated.tzinfo is None:
+                last_updated = last_updated.replace(tzinfo=datetime.timezone.utc)
+            days_since = (datetime.datetime.now(datetime.timezone.utc) - last_updated).days
+            if days_since > 0:
+                # Decay 1% per day, max 20% decay per gap
+                decay = min(0.20, days_since * 0.01)
+                mastery_record.mastery_level = max(0.0, mastery_record.mastery_level - decay)
 
         # 2. Enforce logic invariants (e.g. mastery clamped between 0 and 1)
         new_mastery = mastery_record.mastery_level + delta

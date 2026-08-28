@@ -48,9 +48,13 @@ class Activity {
       activityType: json['activity_type'] as String,
       promptText: json['prompt_text'] as String,
       codeSnippet: json['code_snippet'] as String?,
-      options: (json['options'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList(),
+      options: () {
+        final opts = (json['options'] as List<dynamic>?)
+            ?.map((e) => e as String)
+            .toList();
+        opts?.shuffle();
+        return opts;
+      }(),
       correctAnswer: json['correct_answer'] as String,
       explanation: json['explanation'] as String,
       difficulty: json['difficulty'] as int,

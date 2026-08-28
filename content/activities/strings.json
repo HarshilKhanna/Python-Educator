@@ -8,9 +8,9 @@
       "code_snippet": "x = 'janaganamana'\nprint(x[0])",
       "options": [
         "j",
-        "a",
         "janaganamana",
-        "Error"
+        "Error",
+        "a"
       ],
       "correct_answer": "j",
       "explanation": "Strings are lists of characters. Index 0 is the first character, 'j'.",
@@ -28,9 +28,9 @@
       "code_snippet": "x = 'janaganamana'\nprint(x[0:3])",
       "options": [
         "jan",
-        "jan a",
+        "jna",
         "ana",
-        "jna"
+        "jan a"
       ],
       "correct_answer": "jan",
       "explanation": "x[0:3] slices characters at indices 0, 1, 2 → 'j', 'a', 'n'.",
@@ -48,9 +48,9 @@
       "code_snippet": "print('ab' * 3)",
       "options": [
         "ababab",
-        "ab ab ab",
         "aabbbb",
-        "abababab"
+        "abababab",
+        "ab ab ab"
       ],
       "correct_answer": "ababab",
       "explanation": "The * operator repeats (multiplies) a string. 'ab' * 3 = 'ababab'.",
@@ -67,10 +67,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "print('hello' + ' ' + 'world')",
       "options": [
+        "Error",
         "hello world",
         "helloworld",
-        "hello+world",
-        "Error"
+        "hello+world"
       ],
       "correct_answer": "hello world",
       "explanation": "The + operator concatenates strings. 'hello' + ' ' + 'world' joins them: 'hello world'.",
@@ -87,10 +87,10 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "x = 'India'\nprint(x.upper())",
       "options": [
-        "INDIA",
-        "india",
+        "INDIA ",
         "India",
-        "INDIA "
+        "INDIA",
+        "india"
       ],
       "correct_answer": "INDIA",
       "explanation": "upper() returns a new string with all characters converted to uppercase.",
@@ -107,8 +107,8 @@
       "prompt_text": "What does this code print?",
       "code_snippet": "x = 'hello world'\nprint(x.split())",
       "options": [
-        "['hello', 'world']",
         "hello world",
+        "['hello', 'world']",
         "('hello', 'world')",
         "['h','e','l','l','o']"
       ],
@@ -129,8 +129,8 @@
       "options": [
         "True",
         "False",
-        "a",
-        "Error"
+        "Error",
+        "a"
       ],
       "correct_answer": "True",
       "explanation": "The 'in' operator checks membership. 'a' appears in 'janaganamana', so it returns True.",
@@ -148,9 +148,9 @@
       "code_snippet": "x = 'India'\nprint(len(x))",
       "options": [
         "5",
-        "4",
         "6",
-        "i n d i a"
+        "i n d i a",
+        "4"
       ],
       "correct_answer": "5",
       "explanation": "len() returns the number of characters in the string. 'India' has 5 characters: I, n, d, i, a.",

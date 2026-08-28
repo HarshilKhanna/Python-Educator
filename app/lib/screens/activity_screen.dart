@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../widgets/activity_runner.dart';
 import '../widgets/feedback_panel.dart';
 import 'login_screen.dart';
+import 'tutor_screen.dart';
 
 /// The single activity-flow screen.
 ///
@@ -171,6 +172,11 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
         session:   session,
         onRestart: () => ref.read(activitySessionProvider.notifier).restart(),
         onHome:    () => Navigator.of(context).pop(),
+        onNextActivity: (topicId) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => ActivityScreen(topicId: topicId)),
+          );
+        },
       );
     }
 
@@ -209,12 +215,12 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
                         ActivityRunner(activity: activity),
 
                         // ── Confidence check-in ──────────────────────────
-                        if (!session.isAnswered)
+                        if (session.stagedAnswer != null)
                           _ConfidenceRow(
                             current: session.pendingConfidence,
                             onSelect: (v) => ref
                                 .read(activitySessionProvider.notifier)
-                                .setPendingConfidence(v),
+                                .submitStagedAnswer(v),
                           ),
                       ],
                     ),
@@ -339,6 +345,24 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
               ),
               const SizedBox(height: 10),
               _StruggleOption(
+                icon: Icons.chat_bubble_outline_rounded,
+                label: 'Ask the tutor for help',
+                color: const Color(0xFF3B82F6), // Blue
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => TutorScreen(
+                        topicId: widget.topicId,
+                        topicLabel: widget.topicId.replaceAll('-', ' ').toUpperCase(),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+              _StruggleOption(
                 icon: Icons.self_improvement_rounded,
                 label: 'Take a short break',
                 color: const Color(0xFF10B981),
@@ -395,13 +419,16 @@ class _ProgressHeader extends StatelessWidget {
               Flexible(
                 child: Row(
                   children: [
-                    Text(
-                      topicId.replaceAll('-', ' ').replaceAll('_', ' ').toUpperCase(),
-                      style: const TextStyle(
-                        color: Color(0xFF6366F1),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.6,
+                    Flexible(
+                      child: Text(
+                        topicId.replaceAll('-', ' ').replaceAll('_', ' ').toUpperCase(),
+                        style: const TextStyle(
+                          color: Color(0xFF6366F1),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.6,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -675,11 +702,13 @@ class _SessionRecap extends StatelessWidget {
   final ActivitySessionState session;
   final VoidCallback onRestart;
   final VoidCallback onHome;
+  final void Function(String) onNextActivity;
 
   const _SessionRecap({
     required this.session,
     required this.onRestart,
     required this.onHome,
+    required this.onNextActivity,
   });
 
   @override
@@ -805,6 +834,81 @@ class _SessionRecap extends StatelessWidget {
               ),
 
               const SizedBox(height: 32),
+
+              if (session.nextRecommendation != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF334155)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF6366F1).withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.psychology_rounded,
+                                color: Color(0xFF818CF8), size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Up Next from your Tutor',
+                            style: TextStyle(
+                              color: Color(0xFFE2E8F0),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Recommended Topic: ${session.nextRecommendation!.topicId.replaceAll('-', ' ').toUpperCase()}',
+                        style: const TextStyle(
+                          color: Color(0xFF94A3B8),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        session.nextRecommendation!.reason,
+                        style: const TextStyle(
+                          color: Color(0xFFCBD5E1),
+                          fontSize: 14,
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: () => onNextActivity(session.nextRecommendation!.topicId),
+                          icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+                          label: const Text('Start Recommended Topic',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF4F46E5), // Indigo
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
 
               // Buttons
               SizedBox(

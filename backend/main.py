@@ -27,7 +27,6 @@ from routers.review import router as review_router
 from routers.materials import router as materials_router
 from routers.students import router as students_router
 from routers.monitoring import router as monitoring_router
-from routers.adaptive import router as adaptive_router
 from routers.tutor_feedback import router as tutor_feedback_router
 
 # ---------------------------------------------------------------------------
@@ -74,7 +73,7 @@ app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -125,7 +124,6 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
 app.include_router(auth_router)
 app.include_router(activities.router)
-app.include_router(adaptive_router)
 app.include_router(answers.router)
 app.include_router(tutor_router)
 app.include_router(review_router)

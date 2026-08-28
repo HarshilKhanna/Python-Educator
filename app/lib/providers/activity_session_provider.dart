@@ -12,6 +12,7 @@ import '../services/offline_queue.dart';
 class ActivitySessionState {
   final List<Activity> activities;
   final int currentIndex;
+  final String? stagedAnswer; // null ⟹ not yet staged
   final String? selectedAnswer; // null ⟹ not yet answered
   final bool isLoading;
   final String? error;
@@ -65,6 +66,7 @@ class ActivitySessionState {
   const ActivitySessionState({
     this.activities = const [],
     this.currentIndex = 0,
+    this.stagedAnswer,
     this.selectedAnswer,
     this.isLoading = true,
     this.error,
@@ -119,6 +121,7 @@ class ActivitySessionState {
   ActivitySessionState copyWith({
     List<Activity>? activities,
     int? currentIndex,
+    Object? stagedAnswer = _sentinel,
     Object? selectedAnswer = _sentinel,
     bool? isLoading,
     String? error,
@@ -141,6 +144,7 @@ class ActivitySessionState {
     return ActivitySessionState(
       activities:              activities              ?? this.activities,
       currentIndex:            currentIndex            ?? this.currentIndex,
+      stagedAnswer:            stagedAnswer == _sentinel ? this.stagedAnswer : stagedAnswer as String?,
       selectedAnswer:          selectedAnswer == _sentinel ? this.selectedAnswer : selectedAnswer as String?,
       isLoading:               isLoading               ?? this.isLoading,
       error:                   error                   ?? this.error,
@@ -190,14 +194,33 @@ class ActivitySessionNotifier extends Notifier<ActivitySessionState> {
   Future<void> fetchAdaptiveActivities() async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      // 1. Ask the Pedagogical Agent
-      final rec = await apiClient.fetchNextActivity();
+      // 1. Ask the Pedagogical Agent via the Orchestrator
+      final response = await apiClient.tutorChat(message: 'next activity');
+
+      if (response['pending_review'] == true) {
+        state = ActivitySessionState(
+          activities: [],
+          currentIndex: 0,
+          isLoading: false,
+          isAdaptive: true,
+          agentReason: 'Waiting for instructor approval: ${response['reason']}',
+        );
+        return;
+      }
+
+      final rec = NextActivityRecommendation(
+        topicId: response['next_topic_id'] as String,
+        activityType: response['next_activity_type'] as String,
+        reason: response['reason'] as String,
+        confidence: 1.0,
+      );
 
       // 2. Fetch activities for the recommended topic
       final all = await apiClient.fetchActivities(rec.topicId);
 
-      // 3. Stable-sort: recommended type first, then by original order
-      final sorted = [...all]..sort((a, b) {
+      // 3. Shuffle all, then stable-sort: recommended type first
+      final shuffled = [...all]..shuffle();
+      final sorted = shuffled..sort((a, b) {
           final aMatch = a.activityType == rec.activityType ? 0 : 1;
           final bMatch = b.activityType == rec.activityType ? 0 : 1;
           return aMatch.compareTo(bMatch);
@@ -231,9 +254,10 @@ class ActivitySessionNotifier extends Notifier<ActivitySessionState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final activities = await apiClient.fetchActivities(topicId);
+      final shuffled = [...activities]..shuffle();
       await offlineQueue.syncQueue(onTokenExpired: _handleTokenExpired);
       state = ActivitySessionState(
-        activities: activities,
+        activities: shuffled,
         currentIndex: 0,
         isLoading: false,
         isAdaptive: false,
@@ -279,6 +303,25 @@ class ActivitySessionNotifier extends Notifier<ActivitySessionState> {
   }
 
   // ── Answer selection ──────────────────────────────────────────────────────
+
+  /// Stages an answer for the confidence check.
+  void stageAnswer(String answer) {
+    if (state.isAnswered) return;
+    state = state.copyWith(stagedAnswer: answer);
+  }
+
+  /// Cancels a staged answer, returning to the input state.
+  void cancelStagedAnswer() {
+    state = state.copyWith(stagedAnswer: null);
+  }
+
+  /// Submits the currently staged answer with the provided metacognitive confidence.
+  void submitStagedAnswer(double confidence) {
+    if (state.stagedAnswer == null) return;
+    state = state.copyWith(pendingConfidence: confidence);
+    selectAnswer(state.stagedAnswer!);
+    state = state.copyWith(stagedAnswer: null);
+  }
 
   /// Lock-once: only the first tap registers.
   /// Submits the answer optimistically and updates mastery from backend async.

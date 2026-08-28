@@ -6,7 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from schemas import AnswerSubmission, AnswerResponse
 from database import get_db
 from dependencies import require_auth
-from models import User
+from sqlalchemy.future import select
+from models import User, Mastery
 from services.learner_model import LearnerModelService
 
 router = APIRouter(prefix="/answer", tags=["Answers"])
@@ -58,16 +59,30 @@ async def submit_answer(
     
     is_correct = (submission.submitted_answer == correct_answer)
     
-    # 2. Calculate delta
-    # e.g., +0.1 * difficulty for correct, -0.05 for incorrect
+    # 2. Fetch current mastery to calculate scaled delta
+    stmt = select(Mastery).where(Mastery.student_id == student_id, Mastery.topic_id == topic_id)
+    result = await db.execute(stmt)
+    mastery_record = result.scalar_one_or_none()
+    current_mastery = mastery_record.mastery_level if mastery_record else 0.0
+
+    # 3. Calculate delta with diminishing returns and confidence scaling
+    confidence = submission.confidence if submission.confidence is not None else 0.5
+    
     if is_correct:
-        delta = 0.1 * difficulty
+        # Diminishing returns: the closer to 1.0, the smaller the bump
+        distance = 1.0 - current_mastery
+        # Confident and correct -> normal bump (1.0). Unsure and correct -> smaller bump (0.5).
+        confidence_factor = 0.5 + (0.5 * confidence) 
+        delta = 0.15 * difficulty * distance * confidence_factor
         signal = "correct"
     else:
-        delta = -0.05
+        # Penalize more if they are already considered "mastered"
+        # Confident and wrong -> big penalty (1.5x). Unsure and wrong -> normal penalty (1.0x).
+        confidence_factor = 1.5 if confidence > 0.6 else 1.0
+        delta = -0.10 * difficulty * max(0.2, current_mastery) * confidence_factor
         signal = "incorrect"
         
-    # 3. Call LearnerModelService.recordUpdate
+    # 4. Call LearnerModelService.recordUpdate
     # This must be the ONLY place that touches mastery/confidence
     try:
         updated_mastery = await LearnerModelService.record_update(

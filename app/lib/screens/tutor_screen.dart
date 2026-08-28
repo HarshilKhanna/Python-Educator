@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import '../services/api_client.dart';
 import '../services/chat_history_service.dart';
 
@@ -311,8 +312,8 @@ class _TutorScreenState extends State<TutorScreen> {
             ),
           ),
 
-          // Quick-prompt chips (only at start)
-          if (!_loading && _messages.length <= 1)
+          // Quick-prompt chips
+          if (!_loading)
             _QuickPrompts(
               topicLabel: widget.topicLabel,
               onTap: (prompt) {
@@ -348,6 +349,29 @@ class _ChatBubbleState extends State<_ChatBubble> {
   bool _sourcesExpanded = false;
   String? _vote; // 'up', 'down', or null
   bool _submittingVote = false;
+  
+  final FlutterTts _flutterTts = FlutterTts();
+  bool _isPlaying = false;
+
+  @override
+  void dispose() {
+    _flutterTts.stop();
+    super.dispose();
+  }
+
+  Future<void> _toggleSpeech() async {
+    if (_isPlaying) {
+      await _flutterTts.stop();
+      if (mounted) setState(() => _isPlaying = false);
+    } else {
+      if (mounted) setState(() => _isPlaying = true);
+      await _flutterTts.setLanguage("en-US");
+      _flutterTts.setCompletionHandler(() {
+        if (mounted) setState(() => _isPlaying = false);
+      });
+      await _flutterTts.speak(widget.message.text);
+    }
+  }
 
   Future<void> _submitVote(String rating) async {
     if (_vote != null || _submittingVote) return;
@@ -497,6 +521,13 @@ class _ChatBubbleState extends State<_ChatBubble> {
                             isActive: _vote == 'down',
                             isDisabled: _vote != null,
                             onTap: () => _submitVote('down'),
+                          ),
+                          const SizedBox(width: 8),
+                          _FeedbackButton(
+                            icon: _isPlaying ? Icons.stop_circle_rounded : Icons.volume_up_rounded,
+                            isActive: _isPlaying,
+                            isDisabled: false,
+                            onTap: _toggleSpeech,
                           ),
                         ],
                       ),
@@ -727,10 +758,9 @@ class _QuickPrompts extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final prompts = [
-      'Explain $topicLabel with an example',
-      'What are common mistakes with $topicLabel?',
-      'Give me a challenge',
-      'give me the next activity',
+      'Explain this simpler',
+      'Give me a real-world example',
+      'Can you give me a hint?',
     ];
     return SizedBox(
       height: 44,

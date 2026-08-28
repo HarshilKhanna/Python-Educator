@@ -20,6 +20,7 @@ class User(Base):
     email = Column(String, nullable=False, unique=True, index=True)
     password_hash = Column(String, nullable=False)
     role = Column(String, nullable=False, default="student")  # 'student' | 'instructor'
+    style_profile = Column(JSON, nullable=True) # E.g., {'explanation': 'conceptual', 'pacing': 'normal'}
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class Mastery(Base):

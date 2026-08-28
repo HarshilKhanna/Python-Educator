@@ -135,3 +135,26 @@ async def get_student_mastery(
         mastery=mastery_out,
         recent_events=events_out,
     )
+
+class StyleProfileUpdate(BaseModel):
+    style_profile: dict
+
+@router.patch("/{student_id}/style")
+async def update_style_profile(
+    student_id: str,
+    payload: StyleProfileUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth),
+):
+    if current_user.role == "student" and current_user.id != student_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    stmt = select(User).where(User.id == student_id)
+    res = await db.execute(stmt)
+    user = res.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    user.style_profile = payload.style_profile
+    await db.commit()
+    return {"status": "ok"}

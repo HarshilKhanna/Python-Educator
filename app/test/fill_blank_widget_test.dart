@@ -49,7 +49,11 @@ void main() {
 
     // Type the correct answer
     await tester.enterText(find.byType(TextField), 'Hello');
-    await tester.tap(find.byType(IconButton));
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    
+    // Simulate confidence check-in submission
+    container.read(activitySessionProvider.notifier).submitStagedAnswer(0.8);
     await tester.pumpAndSettle();
     
     await tester.pump(const Duration(milliseconds: 500));
@@ -70,8 +74,12 @@ void main() {
     await tester.pumpWidget(wrap(container));
 
     // Type the incorrect answer
-    await tester.enterText(find.byType(TextField), 'World');
-    await tester.tap(find.byType(IconButton));
+    await tester.enterText(find.byType(TextField), 'Wrong');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    
+    // Simulate confidence check-in submission
+    container.read(activitySessionProvider.notifier).submitStagedAnswer(0.8);
     await tester.pumpAndSettle();
     
     await tester.pump(const Duration(milliseconds: 500));

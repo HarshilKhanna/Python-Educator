@@ -35,7 +35,7 @@ class _ReorderLinesWidgetState extends ConsumerState<ReorderLinesWidget> {
 
   void _submit() {
     final answer = _lines.join('|');
-    ref.read(activitySessionProvider.notifier).selectAnswer(answer);
+    ref.read(activitySessionProvider.notifier).stageAnswer(answer);
   }
 
   @override
@@ -117,7 +117,7 @@ class _ReorderLinesWidgetState extends ConsumerState<ReorderLinesWidget> {
         const SizedBox(height: 24),
         
         // Submit button
-        if (!isAnswered)
+        if (!isAnswered && session.stagedAnswer == null)
           SizedBox(
             width: double.infinity,
             child: FilledButton(
