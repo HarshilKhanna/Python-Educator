@@ -42,7 +42,12 @@ class HomeScreen extends ConsumerWidget {
             ),
             Expanded(
               child: masteryAsync.when(
-                data: (mastery) => _CurriculumPath(mastery: mastery),
+                data: (mastery) => _CurriculumPath(
+                  mastery: mastery,
+                  onReturn: () {
+                    ref.invalidate(masteryProvider);
+                  },
+                ),
                 loading: () => const Center(
                   child: CircularProgressIndicator(
                     color: Color(0xFF6366F1),
@@ -137,7 +142,8 @@ class _Header extends StatelessWidget {
 
 class _CurriculumPath extends StatelessWidget {
   final Map<String, double> mastery;
-  const _CurriculumPath({required this.mastery});
+  final VoidCallback onReturn;
+  const _CurriculumPath({required this.mastery, required this.onReturn});
 
   @override
   Widget build(BuildContext context) {
@@ -161,6 +167,7 @@ class _CurriculumPath extends StatelessWidget {
           blockingPrereqs: blocking,
           isFirst:      i == 0,
           isLast:       i == curr.curriculumOrder.length - 1,
+          onReturn:     onReturn,
         );
       },
     );
@@ -177,6 +184,7 @@ class _TopicNode extends StatelessWidget {
   final List<String> blockingPrereqs;
   final bool isFirst;
   final bool isLast;
+  final VoidCallback onReturn;
 
   const _TopicNode({
     required this.meta,
@@ -185,13 +193,13 @@ class _TopicNode extends StatelessWidget {
     required this.blockingPrereqs,
     required this.isFirst,
     required this.isLast,
+    required this.onReturn,
   });
 
   Color get _accentColor {
-    if (!unlocked) return const Color(0xFF374151);
-    if (masteryLevel >= 0.9) return const Color(0xFF10B981);
-    if (masteryLevel >= curr.masteryThreshold) return const Color(0xFF6366F1);
-    return const Color(0xFF6366F1);
+    if (masteryLevel >= curr.masteryThreshold) return const Color(0xFF10B981);
+    if (unlocked) return const Color(0xFF6366F1);
+    return const Color(0xFF4B5563);
   }
 
   @override
@@ -270,6 +278,7 @@ class _TopicNode extends StatelessWidget {
                 unlocked:        unlocked,
                 blockingPrereqs: blockingPrereqs,
                 accentColor:     _accentColor,
+                onReturn:        onReturn,
               ),
             ),
           ),
@@ -287,6 +296,7 @@ class _TopicCard extends StatelessWidget {
   final bool unlocked;
   final List<String> blockingPrereqs;
   final Color accentColor;
+  final VoidCallback onReturn;
 
   const _TopicCard({
     required this.meta,
