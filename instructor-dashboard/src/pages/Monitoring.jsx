@@ -41,7 +41,7 @@ function KillSwitchPanel({ active, source, onToggle, loading }) {
   return (
     <div className={`kill-switch-panel ${active ? 'ks-active' : ''}`}>
       <div className="ks-header">
-        <span className="ks-icon">{active ? '🛑' : '✅'}</span>
+        <span className="ks-icon">{active ? '!' : '✓'}</span>
         <div>
           <div className="ks-title">Auto-Apply Kill-Switch</div>
           <div className="ks-desc">
@@ -70,7 +70,7 @@ function AlertRow({ alert, onResolve }) {
     <div className={`alert-row ${alert.alert_type === 'thrashing' ? 'alert-thrash' : 'alert-spike'}`}>
       <div className="alert-header">
         <span className="alert-type-badge">
-          {alert.alert_type === 'thrashing' ? '⚡ Thrashing' : '📈 Rate Spike'}
+          {alert.alert_type === 'thrashing' ? 'Thrashing' : 'Rate Spike'}
         </span>
         {isNew && <span className="alert-new-badge">NEW</span>}
         <span className="alert-time">{new Date(alert.created_at).toLocaleString()}</span>
@@ -170,7 +170,7 @@ export default function Monitoring() {
       <div className="page-content">
         <div className="loading-spinner">
           <div className="spinner" />
-          <span>Loading monitoring data…</span>
+          <span>LoadingMonitoring data…</span>
         </div>
       </div>
     )
@@ -183,7 +183,7 @@ export default function Monitoring() {
   return (
     <div className="page-content">
       <div className="page-header">
-        <h1 className="page-title">📊 Monitoring</h1>
+        <h1 className="page-title">📊Monitoring</h1>
         <div className="page-actions">
           <select
             id="window-hours-select"
@@ -197,13 +197,13 @@ export default function Monitoring() {
             <option value={168}>Last 7 days</option>
           </select>
           <button id="refresh-btn" className="btn btn-secondary" onClick={refresh}>
-            ↺ Refresh
+            Refresh
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="error-banner">⚠️ {error}</div>
+        <div className="error-banner">Error: {error}</div>
       )}
 
       {/* Kill-switch */}
@@ -251,19 +251,19 @@ export default function Monitoring() {
           <h3 className="section-subtitle">Auto-Applied by Risk Tier</h3>
           <div className="tier-bars">
             <TierBar
-              label="🟢 Low"
+              label="Low"
               count={stats.by_tier.low}
               total={stats.total_auto_applied}
               color="var(--color-success)"
             />
             <TierBar
-              label="🟡 Medium"
+              label="Medium"
               count={stats.by_tier.medium}
               total={stats.total_auto_applied}
               color="var(--color-warning)"
             />
             <TierBar
-              label="🔴 High"
+              label="High"
               count={stats.by_tier.high || 0}
               total={stats.total_auto_applied}
               color="var(--color-danger)"
@@ -282,7 +282,7 @@ export default function Monitoring() {
         </h2>
         {alerts.length === 0 ? (
           <div className="empty-state">
-            <span className="empty-icon">✅</span>
+            <span className="empty-icon">✓</span>
             <p>No open anomaly alerts. System looks healthy.</p>
           </div>
         ) : (

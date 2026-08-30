@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Routes, Route, NavLink } from 'react-router-dom'
 import ReviewQueue from './pages/ReviewQueue'
 import UploadMaterials from './pages/UploadMaterials'
 import StudentMastery from './pages/StudentMastery'
 import Monitoring from './pages/Monitoring'
 import Login from './pages/Login'
+import { getKillSwitch, setKillSwitch } from './api'
 
 function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(
@@ -22,6 +23,24 @@ function handleLogout(setIsAuthenticated) {
 
 export default function App() {
   const { isAuthenticated, setIsAuthenticated } = useAuth()
+  const [killSwitchActive, setKillSwitchActive] = useState(false)
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      getKillSwitch().then(res => setKillSwitchActive(res.active)).catch(console.error)
+    }
+  }, [isAuthenticated])
+
+  const toggleKillSwitch = async () => {
+    const newState = !killSwitchActive
+    setKillSwitchActive(newState)
+    try {
+      await setKillSwitch(newState)
+    } catch (e) {
+      console.error(e)
+      setKillSwitchActive(!newState) // Revert on failure
+    }
+  }
 
   if (!isAuthenticated) {
     return <Login onLoginSuccess={() => setIsAuthenticated(true)} />
@@ -29,47 +48,39 @@ export default function App() {
 
   return (
     <div className="app">
-      <nav className="sidebar">
-        <div className="sidebar-logo">
-          <span className="logo-icon">🎓</span>
+      <header className="navbar">
+        <div className="nav-brand">
           <span className="logo-text">Python Educator</span>
-          <span className="logo-badge">Instructor</span>
         </div>
-        <ul className="nav-list">
-          <li>
-            <NavLink to="/" end className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <span className="nav-icon">📋</span>
-              Review Queue
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/upload" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <span className="nav-icon">📤</span>
-              Upload Materials
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/student" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <span className="nav-icon">👤</span>
-              Student Mastery
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/monitoring" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <span className="nav-icon">📊</span>
-              Monitoring
-            </NavLink>
-          </li>
-        </ul>
-        {/* Logout button — replaces the dev-auth stub note */}
-        <button
-          id="logout-button"
-          className="logout-button"
-          onClick={() => handleLogout(setIsAuthenticated)}
-        >
-          Sign Out
-        </button>
-      </nav>
+        <nav className="nav-links">
+          <NavLink to="/" end className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+            Review Queue
+          </NavLink>
+          <NavLink to="/upload" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+            Materials
+          </NavLink>
+          <NavLink to="/student" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+            Mastery
+          </NavLink>
+          <NavLink to="/monitoring" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+            Monitoring
+          </NavLink>
+        </nav>
+        <div className="nav-actions">
+          <button
+            onClick={toggleKillSwitch}
+            className={`btn ${killSwitchActive ? 'btn-danger' : 'btn-ghost'} btn-sm`}
+          >
+            {killSwitchActive ? 'AI MANUAL' : 'AI AUTO'}
+          </button>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => handleLogout(setIsAuthenticated)}
+          >
+            Sign Out
+          </button>
+        </div>
+      </header>
       <main className="main-content">
         <Routes>
           <Route path="/" element={<ReviewQueue />} />

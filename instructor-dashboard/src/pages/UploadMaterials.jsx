@@ -2,15 +2,15 @@ import { useState, useEffect, useRef } from 'react'
 import { getTopics, uploadMaterial } from '../api'
 
 export default function UploadMaterials() {
-  const [topics, setTopics]       = useState([])
-  const [topicId, setTopicId]     = useState('')
+  const [topics, setTopics] = useState([])
+  const [topicId, setTopicId] = useState('')
   const [uploadedBy, setUploadedBy] = useState('instructor')
-  const [file, setFile]           = useState(null)
-  const [dragging, setDragging]   = useState(false)
+  const [file, setFile] = useState(null)
+  const [dragging, setDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [result, setResult]       = useState(null)
-  const [error, setError]         = useState(null)
-  const fileRef                   = useRef()
+  const [result, setResult] = useState(null)
+  const [error, setError] = useState(null)
+  const fileRef = useRef()
 
   useEffect(() => {
     getTopics()
@@ -18,7 +18,7 @@ export default function UploadMaterials() {
         setTopics(data.topics || [])
         if (data.topics?.length) setTopicId(data.topics[0])
       })
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   const handleDrop = (e) => {
@@ -53,14 +53,14 @@ export default function UploadMaterials() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1>📤 Upload Materials</h1>
-        <p>Upload supplementary handouts (PDF, DOCX, or Markdown). They are chunked, embedded, and surfaced alongside handbook content in student sessions.</p>
+      <div className="page-header"><div className="page-header-left">
+        <h1>Upload Materials</h1>
+        <p>Upload supplementary handouts (PDF, DOCX, or Markdown). They are chunked, embedded, and surfaced alongside handbook content in student sessions.</p></div>
       </div>
 
       {result && (
         <div className="alert alert-success">
-          ✅ Uploaded <strong>{result.filename}</strong> — <span className="chunk-chip">🧩 {result.chunk_count} chunks</span>
+          Uploaded <strong>{result.filename}</strong> — <span className="chunk-chip">[{result.chunk_count}] chunks</span>
           &nbsp;tagged as <span className="badge badge-upload">instructor_upload</span> for topic <span className="badge badge-pending">{result.topic_id}</span>
         </div>
       )}
@@ -102,7 +102,7 @@ export default function UploadMaterials() {
               onDragLeave={() => setDragging(false)}
               onDrop={handleDrop}
             >
-              <div className="drop-icon">{file ? '📄' : '☁️'}</div>
+
               {file
                 ? <p><strong>{file.name}</strong> ({(file.size / 1024).toFixed(1)} KB)</p>
                 : <p>Click to browse or drag a file here</p>
@@ -125,7 +125,7 @@ export default function UploadMaterials() {
           >
             {uploading
               ? <><span className="spinner" /> Uploading…</>
-              : '📤 Upload & Ingest'}
+              : 'Upload & Ingest'}
           </button>
         </form>
       </div>

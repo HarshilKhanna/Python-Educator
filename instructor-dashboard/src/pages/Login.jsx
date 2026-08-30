@@ -55,9 +55,8 @@ export default function Login({ onLoginSuccess }) {
     <div className="login-page">
       <div className="login-card">
         <div className="login-header">
-          <span className="login-icon">🎓</span>
-          <h1>Python Educator</h1>
-          <p className="login-subtitle">Instructor Dashboard</p>
+          <h1 style={{ fontSize: '28px', fontWeight: '900', color: 'var(--text)', marginBottom: '8px' }}>Python Educator</h1>
+          <p className="login-subtitle" style={{ color: 'var(--text-muted)', fontWeight: '700', marginBottom: '24px' }}>Instructor Dashboard</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
@@ -89,14 +88,15 @@ export default function Login({ onLoginSuccess }) {
           </div>
 
           {error && (
-            <div className="login-error" role="alert">
+            <div className="alert alert-error" role="alert" style={{ marginBottom: '16px', color: 'var(--danger)', fontWeight: '700' }}>
               {error}
             </div>
           )}
 
           <button
             type="submit"
-            className="login-button"
+            className="btn btn-primary"
+            style={{ width: '100%', padding: '16px', fontSize: '16px' }}
             disabled={isLoading}
           >
             {isLoading ? (

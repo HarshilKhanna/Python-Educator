@@ -2,13 +2,13 @@ import { useState, useEffect, useCallback } from 'react'
 import { getPending, approveAdaptation, rejectAdaptation } from '../api'
 
 export default function ReviewQueue() {
-  const [items, setItems]         = useState([])
-  const [loading, setLoading]     = useState(true)
-  const [error, setError]         = useState(null)
-  const [busy, setBusy]           = useState({})         // id → 'approving'|'rejecting'
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [busy, setBusy] = useState({})         // id → 'approving'|'rejecting'
   const [rejectText, setRejectText] = useState({})       // id → string
   const [showReject, setShowReject] = useState({})       // id → bool
-  const [toast, setToast]         = useState(null)
+  const [toast, setToast] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -60,9 +60,9 @@ export default function ReviewQueue() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1>📋 Review Queue</h1>
-        <p>Adaptation recommendations from the Pedagogical Agent awaiting instructor approval.</p>
+      <div className="page-header"><div className="page-header-left">
+        <h1>Review Queue</h1>
+        <p>Adaptation recommendations from the Pedagogical Agent awaiting instructor approval.</p></div>
       </div>
 
       {toast && (
@@ -82,7 +82,7 @@ export default function ReviewQueue() {
       {!loading && !error && items.length === 0 && (
         <div className="card">
           <div className="empty-state">
-            <div className="empty-icon">✅</div>
+            <div className="empty-icon">✓</div>
             <p>No pending recommendations. All caught up!</p>
           </div>
         </div>
@@ -128,7 +128,7 @@ export default function ReviewQueue() {
                         >
                           {busy[item.id] === 'approving'
                             ? <><span className="spinner" /> Approving…</>
-                            : '✓ Approve'}
+                            : 'Approve'}
                         </button>
                         <button
                           id={`reject-toggle-${item.id}`}
@@ -136,7 +136,7 @@ export default function ReviewQueue() {
                           disabled={!!busy[item.id]}
                           onClick={() => setShowReject(s => ({ ...s, [item.id]: !s[item.id] }))}
                         >
-                          ✗ Reject
+                          Reject
                         </button>
                       </div>
                       {showReject[item.id] && (

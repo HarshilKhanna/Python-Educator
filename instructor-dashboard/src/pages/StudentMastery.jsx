@@ -3,12 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { getStudentMastery } from '../api'
 
 export default function StudentMastery() {
-  const { id: paramId }         = useParams()
-  const navigate                = useNavigate()
+  const { id: paramId } = useParams()
+  const navigate = useNavigate()
   const [studentId, setStudentId] = useState(paramId || '')
-  const [data, setData]         = useState(null)
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState(null)
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
   const handleSearch = async (e) => {
     e?.preventDefault()
@@ -40,9 +40,9 @@ export default function StudentMastery() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1>👤 Student Mastery View</h1>
-        <p>Per-topic mastery state and recent adaptation reasons — the instructor's explainability view.</p>
+      <div className="page-header"><div className="page-header-left">
+        <h1>Student Mastery View</h1>
+        <p>Per-topic mastery state and recent adaptation reasons — the instructor's explainability view.</p></div>
       </div>
 
       <div className="card">
@@ -61,7 +61,7 @@ export default function StudentMastery() {
             className="btn btn-primary"
             disabled={!studentId.trim() || loading}
           >
-            {loading ? <><span className="spinner" /> Loading…</> : '🔍 View Mastery'}
+            {loading ? <><span className="spinner" /> Loading…</> : 'View Mastery'}
           </button>
         </form>
       </div>
@@ -76,7 +76,7 @@ export default function StudentMastery() {
             </h2>
             {data.mastery.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon">🌱</div>
+                <div className="empty-icon">!</div>
                 <p>No mastery data yet. Student hasn't completed any activities.</p>
               </div>
             ) : (
@@ -130,7 +130,7 @@ export default function StudentMastery() {
             </h2>
             {data.recent_events.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon">📭</div>
+                <div className="empty-icon">-</div>
                 <p>No adaptation events recorded yet.</p>
               </div>
             ) : (
