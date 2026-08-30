@@ -2,24 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/curriculum.dart' as curr;
 import '../providers/settings_provider.dart';
+import '../providers/mastery_provider.dart';
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
 import 'section_detail_screen.dart';
 import 'login_screen.dart';
-
-// ── Mastery provider ────────────────────────────────────────────────────────
-
-final masteryProvider = FutureProvider<Map<String, double>>((ref) async {
-  try {
-    final records = await apiClient.fetchMastery();
-    return {
-      for (final r in records)
-        (r['topic_id'] as String): (r['mastery_level'] as num).toDouble()
-    };
-  } catch (_) {
-    return {};
-  }
-});
 
 // ── HomeScreen ──────────────────────────────────────────────────────────────
 
@@ -147,29 +134,35 @@ class _CurriculumPath extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
-      itemCount: curr.curriculumOrder.length,
-      itemBuilder: (context, i) {
-        final topicId = curr.curriculumOrder[i];
-        final meta    = curr.topicMeta.firstWhere(
-          (t) => t.id == topicId,
-          orElse: () => curr.TopicMeta(id: topicId, label: topicId, emoji: '📚'),
-        );
-        final masteryLevel = mastery[topicId] ?? 0.0;
-        final unlocked     = curr.isTopicUnlocked(topicId, mastery);
-        final blocking     = curr.blockingPrereqs(topicId, mastery);
+    return RefreshIndicator(
+      onRefresh: () async => onReturn(),
+      color: const Color(0xFF6366F1),
+      backgroundColor: const Color(0xFF141824),
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+        itemCount: curr.curriculumOrder.length,
+        itemBuilder: (context, i) {
+          final topicId = curr.curriculumOrder[i];
+          final meta    = curr.topicMeta.firstWhere(
+            (t) => t.id == topicId,
+            orElse: () => curr.TopicMeta(id: topicId, label: topicId, emoji: '📚'),
+          );
+          final masteryLevel = mastery[topicId] ?? 0.0;
+          final unlocked     = curr.isTopicUnlocked(topicId, mastery);
+          final blocking     = curr.blockingPrereqs(topicId, mastery);
 
-        return _TopicNode(
-          meta:         meta,
-          masteryLevel: masteryLevel,
-          unlocked:     unlocked,
-          blockingPrereqs: blocking,
-          isFirst:      i == 0,
-          isLast:       i == curr.curriculumOrder.length - 1,
-          onReturn:     onReturn,
-        );
-      },
+          return _TopicNode(
+            meta:         meta,
+            masteryLevel: masteryLevel,
+            unlocked:     unlocked,
+            blockingPrereqs: blocking,
+            isFirst:      i == 0,
+            isLast:       i == curr.curriculumOrder.length - 1,
+            onReturn:     onReturn,
+          );
+        },
+      ),
     );
   }
 }
@@ -304,6 +297,7 @@ class _TopicCard extends StatelessWidget {
     required this.unlocked,
     required this.blockingPrereqs,
     required this.accentColor,
+    required this.onReturn,
   });
 
   @override
@@ -313,8 +307,8 @@ class _TopicCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: unlocked
-            ? () {
-                Navigator.push(
+            ? () async {
+                await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => SectionDetailScreen(
@@ -323,6 +317,7 @@ class _TopicCard extends StatelessWidget {
                     ),
                   ),
                 );
+                onReturn();
               }
             : () => _showLockedDialog(context),
         child: AnimatedContainer(

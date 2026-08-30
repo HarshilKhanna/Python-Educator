@@ -116,6 +116,44 @@ class ApiClient {
     }
   }
 
+  /// Stream a free-text message to the tutor agent.
+  Stream<Map<String, dynamic>> tutorChatStream({
+    required String message,
+    String? topicId,
+  }) async* {
+    final headers = await _authHeaders();
+    final body = <String, dynamic>{'message': message};
+    if (topicId != null) {
+      body['topic_id'] = topicId;
+    }
+    
+    final request = http.Request('POST', Uri.parse('$baseUrl/tutor/stream'));
+    request.headers.addAll(headers);
+    request.body = jsonEncode(body);
+    
+    final response = await http.Client().send(request);
+    
+    if (response.statusCode == 401) {
+      throw AuthException('Session expired. Please log in again.');
+    } else if (response.statusCode != 200) {
+      throw Exception('Tutor stream error: ${response.statusCode}');
+    }
+    
+    await for (final line in response.stream.transform(utf8.decoder).transform(const LineSplitter())) {
+      if (line.startsWith('data: ')) {
+        final dataStr = line.substring(6).trim();
+        if (dataStr.isEmpty) continue;
+        
+        try {
+          final data = jsonDecode(dataStr) as Map<String, dynamic>;
+          yield data;
+        } catch (e) {
+          // Ignore malformed JSON in stream
+        }
+      }
+    }
+  }
+
   /// Submit thumbs up/down feedback for a tutor message.
   Future<void> submitTutorFeedback({
     required String topicId,

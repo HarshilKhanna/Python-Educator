@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import '../services/api_client.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import '../services/chat_history_service.dart';
 
 // ── Message model ──────────────────────────────────────────────────────────
@@ -55,34 +56,58 @@ class _Message {
         'agentReason': agentReason,
       };
 
+  static String _extractText(dynamic value, {String fallback = ''}) {
+    if (value == null) return fallback;
+    if (value is String) return value;
+    if (value is List) {
+      return value.map((e) {
+        if (e is Map && e.containsKey('text')) return e['text'].toString();
+        return e.toString();
+      }).join();
+    }
+    if (value is Map && value.containsKey('text')) {
+      return value['text'].toString();
+    }
+    return value.toString();
+  }
+
+  static List<Map<String, dynamic>>? _extractChunks(dynamic raw) {
+    if (raw is! List) return null;
+    final list = <Map<String, dynamic>>[];
+    for (final item in raw) {
+      if (item is Map) {
+        list.add(item.map((k, v) => MapEntry(k.toString(), v)));
+      }
+    }
+    return list;
+  }
+
   factory _Message.fromJson(Map<String, dynamic> json) => _Message(
-        id: json['id'] as String?,
-        role: json['role'] as String,
-        text: json['text'] as String,
-        isError: json['isError'] as bool? ?? false,
+        id: json['id']?.toString(),
+        role: json['role']?.toString() ?? 'assistant',
+        text: _extractText(json['text']),
+        isError: json['isError'] == true,
         grounded: json['grounded'] as bool?,
-        sourceChunks: (json['sourceChunks'] as List<dynamic>?)
-            ?.map((e) => e as Map<String, dynamic>)
-            .toList(),
-        pendingReview: json['pendingReview'] as bool? ?? false,
-        riskTier: json['riskTier'] as String?,
-        autoApplied: json['autoApplied'] as bool? ?? false,
-        nextTopicId: json['nextTopicId'] as String?,
-        nextActivityType: json['nextActivityType'] as String?,
-        agentReason: json['agentReason'] as String?,
+        sourceChunks: _extractChunks(json['sourceChunks']),
+        pendingReview: json['pendingReview'] == true,
+        riskTier: json['riskTier']?.toString(),
+        autoApplied: json['autoApplied'] == true,
+        nextTopicId: json['nextTopicId']?.toString(),
+        nextActivityType: json['nextActivityType']?.toString(),
+        agentReason: json['agentReason']?.toString(),
       );
 
   /// Build from the full /tutor/interact response map.
   factory _Message.fromResponse(Map<String, dynamic> data) {
-    final intent = data['intent'] as String? ?? 'question';
+    final intent = data['intent']?.toString() ?? 'question';
 
     if (intent == 'activity_request') {
-      final nextTopic    = data['next_topic_id']      as String?;
-      final nextActivity = data['next_activity_type'] as String?;
-      final reason       = data['reason']             as String?;
-      final pending      = data['pending_review']     as bool? ?? false;
-      final riskTier     = data['risk_tier']          as String?;
-      final autoApplied  = data['auto_applied']       as bool? ?? false;
+      final nextTopic    = data['next_topic_id']?.toString();
+      final nextActivity = data['next_activity_type']?.toString();
+      final reason       = data['reason']?.toString();
+      final pending      = data['pending_review'] == true;
+      final riskTier     = data['risk_tier']?.toString();
+      final autoApplied  = data['auto_applied'] == true;
 
       String text;
       if (pending) {
@@ -108,15 +133,13 @@ class _Message {
     }
 
     // Technical / question path
-    final answer  = data['answer']   as String?;
+    final answer = _extractText(data['answer'], fallback: 'No response from tutor.');
     final grounded = data['grounded'] as bool?;
-    final chunks  = (data['source_chunks'] as List<dynamic>?)
-        ?.map((e) => e as Map<String, dynamic>)
-        .toList();
+    final chunks = _extractChunks(data['source_chunks']);
 
     return _Message(
       role:         'assistant',
-      text:         answer ?? 'No response from tutor.',
+      text:         answer,
       grounded:     grounded,
       sourceChunks: chunks,
     );
@@ -214,13 +237,64 @@ class _TutorScreenState extends State<TutorScreen> {
     _scrollToBottom();
 
     try {
-      final response = await apiClient.tutorChat(
+      final stream = apiClient.tutorChatStream(
         message: text,
         topicId: widget.topicId,
       );
-      final msg = _Message.fromResponse(response);
-      setState(() => _messages.add(msg));
-      _saveHistory();
+      
+      _Message? streamingMsg;
+      
+      await for (final event in stream) {
+        if (!mounted) break;
+        
+        final type = event['type']?.toString();
+        if (type == 'token') {
+          final content = _Message._extractText(event['content']);
+          if (content.isEmpty) continue;
+
+          if (streamingMsg == null) {
+            streamingMsg = _Message(role: 'assistant', text: content);
+            setState(() {
+              _messages.add(streamingMsg!);
+              _loading = false;
+            });
+          } else {
+            setState(() {
+              final idx = _messages.indexOf(streamingMsg!);
+              if (idx != -1) {
+                _messages[idx] = _Message(
+                  id: streamingMsg!.id,
+                  role: 'assistant',
+                  text: streamingMsg!.text + content,
+                );
+                streamingMsg = _messages[idx];
+              }
+            });
+          }
+          _scrollToBottom();
+        } else if (type == 'final') {
+          final rawData = event['data'];
+          final Map<String, dynamic> response = rawData is Map
+              ? Map<String, dynamic>.from(rawData)
+              : <String, dynamic>{};
+          final msg = _Message.fromResponse(response);
+          setState(() {
+            if (streamingMsg != null) {
+               final idx = _messages.indexOf(streamingMsg!);
+               if (idx != -1) {
+                 _messages[idx] = msg;
+               }
+            } else {
+               _messages.add(msg);
+            }
+          });
+          _saveHistory();
+          _scrollToBottom();
+        } else if (type == 'error') {
+           final err = _Message._extractText(event['message'], fallback: 'Unknown tutor error');
+           throw Exception(err);
+        }
+      }
     } catch (e) {
       setState(() => _messages.add(_Message(
         role: 'assistant',
@@ -228,7 +302,6 @@ class _TutorScreenState extends State<TutorScreen> {
         isError: true,
       )));
       _saveHistory();
-      // Also surface a snackbar for quick visibility
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -455,12 +528,24 @@ class _ChatBubbleState extends State<_ChatBubble> {
                       bottomRight: Radius.circular(isUser ? 4 : 16),
                     ),
                   ),
-                  child: Text(
-                    m.text,
-                    style: TextStyle(
-                      color: isUser ? Colors.white : const Color(0xFFE5E7EB),
-                      fontSize: 14,
-                      height: 1.5,
+                  child: MarkdownBody(
+                    data: m.text,
+                    styleSheet: MarkdownStyleSheet(
+                      p: TextStyle(
+                        color: isUser ? Colors.white : const Color(0xFFE5E7EB),
+                        fontSize: 14,
+                        height: 1.5,
+                      ),
+                      code: const TextStyle(
+                        color: Color(0xFFE5E7EB),
+                        backgroundColor: Color(0xFF374151),
+                        fontFamily: 'monospace',
+                        fontSize: 13,
+                      ),
+                      codeblockDecoration: BoxDecoration(
+                        color: const Color(0xFF111827),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                 ),

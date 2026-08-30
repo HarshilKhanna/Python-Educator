@@ -20,6 +20,7 @@ class LearnerModelService:
         delta: float,
         risk_tier: str | None = None,
         student_confidence: float | None = None,
+        activity_type: str | None = None,
     ) -> float:
         """
         Appends an AdaptationEvent, updates the Mastery table, and logs the transaction.
@@ -82,6 +83,7 @@ class LearnerModelService:
             signal=signal,
             delta=delta,
             risk_tier=risk_tier,
+            activity_type=activity_type,
         )
         session.add(event)
         

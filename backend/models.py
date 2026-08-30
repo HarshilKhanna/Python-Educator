@@ -60,6 +60,9 @@ class AdaptationEvent(Base):
     student_id = Column(String, nullable=False)
     topic_id = Column(String, nullable=False)
     
+    # Track which activity type triggered this event (if any), e.g. 'predict_output'
+    activity_type = Column(String, nullable=True)
+    
     # e.g., 'activity_submission', 'instructor_override', 'empathy_classifier'
     source = Column(String, nullable=False)
     

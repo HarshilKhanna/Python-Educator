@@ -35,7 +35,7 @@ class _ReorderLinesWidgetState extends ConsumerState<ReorderLinesWidget> {
 
   void _submit() {
     final answer = _lines.join('|');
-    ref.read(activitySessionProvider.notifier).stageAnswer(answer);
+    ref.read(activitySessionProvider.notifier).selectAnswer(answer);
   }
 
   @override
@@ -99,15 +99,11 @@ class _ReorderLinesWidgetState extends ConsumerState<ReorderLinesWidget> {
                     title: Text(
                       line,
                       style: const TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 13.5,
-                        height: 1.5,
                         color: Color(0xFFE6EDF3),
+                        fontFamily: 'monospace',
+                        fontSize: 14,
                       ),
                     ),
-                    trailing: isAnswered
-                        ? null
-                        : const Icon(Icons.drag_indicator_rounded, color: Color(0xFF6E7681)),
                   ),
                 );
               },
@@ -117,7 +113,7 @@ class _ReorderLinesWidgetState extends ConsumerState<ReorderLinesWidget> {
         const SizedBox(height: 24),
         
         // Submit button
-        if (!isAnswered && session.stagedAnswer == null)
+        if (!isAnswered)
           SizedBox(
             width: double.infinity,
             child: FilledButton(

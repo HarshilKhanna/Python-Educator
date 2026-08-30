@@ -30,7 +30,6 @@ class PredictOutputWidget extends ConsumerWidget {
       if (option == session.selectedAnswer) return OptionState.incorrect;
       return OptionState.idle;
     }
-    if (option == session.stagedAnswer) return OptionState.staged;
     return OptionState.idle;
   }
 
@@ -74,7 +73,7 @@ class PredictOutputWidget extends ConsumerWidget {
             text: opt,
             state: _stateFor(opt, session),
             onTap: () =>
-                ref.read(activitySessionProvider.notifier).stageAnswer(opt),
+                ref.read(activitySessionProvider.notifier).selectAnswer(opt),
           );
         }),
 

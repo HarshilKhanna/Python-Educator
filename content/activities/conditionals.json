@@ -252,7 +252,7 @@
         "print('Positive')",
         "if x > 0:"
       ],
-      "correct_answer": "['if x > 0:', 'print(\\'Positive\\')', 'else:', 'print(\\'Negative\\')']",
+      "correct_answer": "if x > 0:|print('Positive')|else:|print('Negative')",
       "explanation": "The if statement comes first, followed by its indented block, then the else statement, and its block.",
       "difficulty": 2,
       "source_section": {

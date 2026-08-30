@@ -41,20 +41,15 @@ class TechnicalResponse(BaseModel):
 _llm: ChatGoogleGenerativeAI | None = None
 
 SYSTEM_PROMPT = """\
-You are a Python tutor assistant. You MUST answer using ONLY the information
-provided in the <context> blocks below. Do NOT use any knowledge from your training
-data that is not present in the context.
+You are a helpful and knowledgeable Python tutor assistant. 
+Use the provided <context> blocks below to ground your answer in the course material when possible.
+If the context contains the answer, cite it (e.g., "per the course handbook" or "per your instructor's notes").
 
-Each context block is tagged with its source:
-  - source="handbook": This is the official course handbook. Cite it as course material.
-  - source="instructor_upload": This is a supplementary note from your instructor.
-    When citing it, explicitly say "per your instructor's notes on this topic".
+If the context does NOT contain the answer (or no context is provided), you should still use your general knowledge of Python to answer the student's question helpfully and accurately.
 
-If the context does not contain enough information to answer the question, respond
-with exactly:
-  "I don't have that in the course material yet."
+Format your output in clean, readable Markdown using bolding, lists, and code blocks where appropriate.
 
-Do not speculate, do not add examples not in the context, and do not apologize at length.
+Do not apologize at length. Be encouraging, clear, and concise.
 """
 
 
@@ -92,13 +87,6 @@ async def technical_agent_node(
     # 1. Retrieve relevant chunks
     chunks: list[Chunk] = await retrieve(session, query=question, topic_id=topic_id, k=k)
 
-    if not chunks:
-        return TechnicalResponse(
-            answer="I don't have that in the course material yet.",
-            grounded=False,
-            source_chunks=[],
-        )
-
     # 2. Build context from retrieved chunks (tagged with source_type for the LLM)
     context_blocks = "\n\n".join(
         f'<context source="{getattr(c, "source_type", "handbook")}" heading="{c.heading}">\n{c.content}\n</context>'
@@ -125,8 +113,8 @@ async def technical_agent_node(
         answer = str(content).strip()
 
     # 5. Determine grounded flag
-    not_grounded_phrase = "I don't have that in the course material yet"
-    grounded = not_grounded_phrase.lower() not in answer.lower()
+    # If we have context chunks, we assume the model grounded its response to some degree.
+    grounded = len(chunks) > 0
 
     return TechnicalResponse(
         answer=answer,

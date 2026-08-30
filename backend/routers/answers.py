@@ -57,7 +57,18 @@ async def submit_answer(
     correct_answer = activity.get("correct_answer")
     difficulty = activity.get("difficulty", 1)
     
-    is_correct = (submission.submitted_answer == correct_answer)
+    sub = submission.submitted_answer.strip()
+    cor = (correct_answer or "").strip()
+    is_correct = (sub == cor) or (sub.replace('"', "'") == cor.replace('"', "'"))
+    if not is_correct and cor.startswith("[") and cor.endswith("]"):
+        try:
+            import ast
+            parsed = ast.literal_eval(cor)
+            if isinstance(parsed, list):
+                pipe_cor = "|".join(str(p).strip() for p in parsed)
+                is_correct = (sub == pipe_cor) or (sub.replace('"', "'") == pipe_cor.replace('"', "'"))
+        except Exception:
+            pass
     
     # 2. Fetch current mastery to calculate scaled delta
     stmt = select(Mastery).where(Mastery.student_id == student_id, Mastery.topic_id == topic_id)
@@ -108,6 +119,7 @@ async def submit_answer(
             signal=signal,
             delta=delta,
             student_confidence=submission.confidence,
+            activity_type=activity.get("type"),
         )
         
         db.add(current_user)

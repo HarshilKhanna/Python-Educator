@@ -16,6 +16,7 @@
 library;
 
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
@@ -32,10 +33,11 @@ class OfflineQueue {
   static const String _tableName = 'failed_submissions';
   Database? _db;
 
-  Future<Database> get database async {
-    if (_db != null) return _db!;
+  Future<Database?> get database async {
+    if (kIsWeb) return null; // sqflite is not supported on web
+    if (_db != null) return _db;
     _db = await _initDB();
-    return _db!;
+    return _db;
   }
 
   Future<Database> _initDB() async {
@@ -66,6 +68,7 @@ class OfflineQueue {
     String? authToken,
   }) async {
     final db = await database;
+    if (db == null) return;
     await db.insert(_tableName, {
       'activityId': activityId,
       'submittedAnswer': submittedAnswer,
@@ -80,6 +83,7 @@ class OfflineQueue {
     TokenExpiredCallback? onTokenExpired,
   }) async {
     final db = await database;
+    if (db == null) return 0;
     final items = await db.query(_tableName, orderBy: 'enqueuedAt ASC');
 
     if (items.isEmpty) return 0;
@@ -117,6 +121,7 @@ class OfflineQueue {
   /// Returns the number of items currently waiting in the queue.
   Future<int> pendingCount() async {
     final db = await database;
+    if (db == null) return 0;
     final count = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM $_tableName'));
     return count ?? 0;
   }

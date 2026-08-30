@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/curriculum.dart';
+import '../providers/mastery_provider.dart';
 import 'activity_screen.dart';
 import 'tutor_screen.dart';
 
-class SectionDetailScreen extends StatelessWidget {
+class SectionDetailScreen extends ConsumerWidget {
   final TopicMeta meta;
   final double masteryLevel;
 
   const SectionDetailScreen({
     super.key,
     required this.meta,
-    required this.masteryLevel,
+    this.masteryLevel = 0.0,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final accentColor = const Color(0xFF6366F1);
+    final masteryMap = ref.watch(masteryProvider).valueOrNull ?? {};
+    final currentMastery = masteryMap[meta.id] ?? masteryLevel;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0A0E1A),
@@ -72,7 +76,7 @@ class SectionDetailScreen extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(6),
                 child: LinearProgressIndicator(
-                  value: masteryLevel.clamp(0.0, 1.0),
+                  value: currentMastery.clamp(0.0, 1.0),
                   backgroundColor: const Color(0xFF1F2937),
                   valueColor: AlwaysStoppedAnimation(accentColor),
                   minHeight: 8,
@@ -80,7 +84,7 @@ class SectionDetailScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                '${(masteryLevel * 100).toInt()}% mastered',
+                '${(currentMastery * 100).toInt()}% mastered',
                 style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
               ),
               
@@ -96,15 +100,20 @@ class SectionDetailScreen extends StatelessWidget {
               _ActionCard(
                 icon: Icons.quiz_rounded,
                 title: 'Practice Activities',
-                subtitle: 'Work through adaptive exercises',
+                subtitle: 'Work through exercises for this topic',
                 color: const Color(0xFF6366F1),
-                onTap: () {
-                  Navigator.push(
+                onTap: () async {
+                  await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => ActivityScreen(topicId: meta.id),
+                      builder: (_) => ActivityScreen(
+                        topicId: meta.id,
+                        initialMastery: currentMastery,
+                        isAdaptive: false,
+                      ),
                     ),
                   );
+                  ref.invalidate(masteryProvider);
                 },
               ),
               const SizedBox(height: 16),
@@ -113,8 +122,8 @@ class SectionDetailScreen extends StatelessWidget {
                 title: 'Ask the Tutor',
                 subtitle: 'Get AI-powered explanations',
                 color: const Color(0xFF10B981),
-                onTap: () {
-                  Navigator.push(
+                onTap: () async {
+                  await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => TutorScreen(
@@ -123,6 +132,7 @@ class SectionDetailScreen extends StatelessWidget {
                       ),
                     ),
                   );
+                  ref.invalidate(masteryProvider);
                 },
               ),
             ],

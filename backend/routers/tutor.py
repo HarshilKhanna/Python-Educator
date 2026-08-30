@@ -17,8 +17,10 @@ LearnerModelService.record_update remains the ONLY write path in both branches.
 from __future__ import annotations
 
 from datetime import datetime
+import json
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -256,3 +258,147 @@ async def tutor_interact(
         grounded=tech.get("grounded"),
         source_chunks=tech.get("source_chunks"),
     )
+
+
+@router.post("/stream")
+async def tutor_stream(
+    req: InteractRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth),
+):
+    """
+    Server-Sent Events (SSE) streaming endpoint for tutor interactions.
+    Streams individual LLM tokens as they are generated, followed by the final metadata payload.
+    """
+    student_id = current_user.id
+    set_session(db)
+
+    async def event_generator():
+        final_state = None
+        try:
+            async for event in orchestrator_graph.astream_events({
+                "student_id": student_id,
+                "message": req.message,
+                "topic_id": req.topic_id,
+                "intent": None,
+                "pedagogical_result": None,
+                "technical_result": None,
+                "pending_adaptation_id": None,
+            }, version="v2"):
+                
+                # Stream tokens from the LLM when it's generating text
+                if event["event"] == "on_chat_model_stream":
+                    if "chunk" in event.get("data", {}):
+                        chunk = event["data"]["chunk"]
+                        chunk_content = getattr(chunk, "content", "")
+                        if isinstance(chunk_content, list):
+                            texts = []
+                            for part in chunk_content:
+                                if isinstance(part, str):
+                                    texts.append(part)
+                                elif isinstance(part, dict) and "text" in part:
+                                    texts.append(part["text"])
+                                elif hasattr(part, "text"):
+                                    texts.append(str(part.text))
+                                else:
+                                    texts.append(str(part))
+                            chunk_content = "".join(texts)
+                        elif not isinstance(chunk_content, str):
+                            chunk_content = str(chunk_content) if chunk_content is not None else ""
+
+                        if chunk_content:
+                            payload = json.dumps({"type": "token", "content": chunk_content})
+                            yield f"data: {payload}\n\n"
+                
+                # Capture the final state output from the LangGraph run
+                if event["event"] == "on_chain_end" and not event.get("parent_ids"):
+                    final_state = event["data"].get("output")
+                    
+        except Exception as e:
+            payload = json.dumps({"type": "error", "message": str(e)})
+            yield f"data: {payload}\n\n"
+            return
+            
+        if not final_state:
+            payload = json.dumps({"type": "error", "message": "No final state returned"})
+            yield f"data: {payload}\n\n"
+            return
+
+        intent = final_state.get("intent", "question")
+        
+        if intent == "activity_request":
+            ped = final_state.get("pedagogical_result", {})
+            next_topic = ped.get("next_topic_id")
+            next_activity = ped.get("next_activity_type")
+            reason = ped.get("reason", "")
+            confidence = ped.get("confidence", 1.0)
+            
+            current_topic = await _get_current_topic(student_id, db)
+            mastery_map = await _get_mastery_map(student_id, db)
+            risk = classify_risk(
+                current_topic=current_topic,
+                next_topic_id=next_topic,
+                next_activity_type=next_activity,
+                confidence=confidence,
+                mastery_map=mastery_map,
+                confidence_threshold=config.CONFIDENCE_THRESHOLD,
+            )
+            kill_switch = await _kill_switch_active(db)
+            
+            if not kill_switch and risk in ("low", "medium"):
+                try:
+                    await LearnerModelService.record_update(
+                        session=db,
+                        source="pedagogical_agent_auto",
+                        student_id=student_id,
+                        topic_id=next_topic,
+                        signal="auto_applied_advancement",
+                        delta=AUTO_APPLY_DELTA,
+                        risk_tier=risk,
+                    )
+                    await db.commit()
+                except Exception:
+                    await db.rollback()
+                final_response = InteractResponse(
+                    intent=intent,
+                    next_topic_id=next_topic,
+                    next_activity_type=next_activity,
+                    reason=reason,
+                    pending_review=False,
+                    risk_tier=risk,
+                    auto_applied=True,
+                )
+            else:
+                pending = PendingAdaptation(
+                    student_id=student_id,
+                    next_topic_id=next_topic,
+                    next_activity_type=next_activity,
+                    reason=reason,
+                    status="pending",
+                )
+                db.add(pending)
+                await db.commit()
+                await db.refresh(pending)
+                final_response = InteractResponse(
+                    intent=intent,
+                    next_topic_id=next_topic,
+                    next_activity_type=next_activity,
+                    reason=reason,
+                    pending_review=True,
+                    pending_adaptation_id=pending.id,
+                    risk_tier=risk,
+                    auto_applied=False,
+                )
+        else:
+            final_response = InteractResponse(
+                intent=intent,
+                answer=final_state.get("technical_result", {}).get("answer"),
+                grounded=final_state.get("technical_result", {}).get("grounded", False),
+                source_chunks=final_state.get("technical_result", {}).get("source_chunks", []),
+            )
+            
+        payload = json.dumps({"type": "final", "data": final_response.model_dump()})
+        yield f"data: {payload}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+

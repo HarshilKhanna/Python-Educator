@@ -21,19 +21,27 @@ import 'tutor_screen.dart';
 ///   - Show expanded session recap on completion
 class ActivityScreen extends ConsumerStatefulWidget {
   final String topicId;
-  const ActivityScreen({super.key, this.topicId = 'loops'});
+  final double initialMastery;
+  final bool isAdaptive;
+  const ActivityScreen({
+    super.key,
+    this.topicId = 'basics-operators',
+    this.initialMastery = 0.0,
+    this.isAdaptive = false,
+  });
 
   @override
   ConsumerState<ActivityScreen> createState() => _ActivityScreenState();
 }
 
 class _ActivityScreenState extends ConsumerState<ActivityScreen> {
-  bool _adaptive = true; // start in adaptive mode; user can toggle
+  late bool _adaptive;
   Timer? _struggleTimer;
 
   @override
   void initState() {
     super.initState();
+    _adaptive = widget.isAdaptive;
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadActivities());
   }
 
@@ -46,9 +54,9 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
   Future<void> _loadActivities() async {
     try {
       if (_adaptive) {
-        await ref.read(activitySessionProvider.notifier).fetchAdaptiveActivities();
+        await ref.read(activitySessionProvider.notifier).fetchAdaptiveActivities(initialMastery: widget.initialMastery);
       } else {
-        await ref.read(activitySessionProvider.notifier).fetchActivities(widget.topicId);
+        await ref.read(activitySessionProvider.notifier).fetchActivities(widget.topicId, initialMastery: widget.initialMastery);
       }
     } catch (e) {
       ref.read(activitySessionProvider.notifier).setError('Could not load activities:\n$e');
@@ -213,15 +221,6 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         ActivityRunner(activity: activity),
-
-                        // ── Confidence check-in ──────────────────────────
-                        if (session.stagedAnswer != null)
-                          _ConfidenceRow(
-                            current: session.pendingConfidence,
-                            onSelect: (v) => ref
-                                .read(activitySessionProvider.notifier)
-                                .submitStagedAnswer(v),
-                          ),
                       ],
                     ),
                   ),
@@ -412,89 +411,89 @@ class _ProgressHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 12,
             children: [
               // Topic label + adaptive badge
-              Flexible(
-                child: Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        topicId.replaceAll('-', ' ').replaceAll('_', ' ').toUpperCase(),
-                        style: const TextStyle(
-                          color: Color(0xFF6366F1),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.6,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      topicId.replaceAll('-', ' ').replaceAll('_', ' ').toUpperCase(),
+                      style: const TextStyle(
+                        color: Color(0xFF6366F1),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.6,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(width: 6),
-                    if (isAdaptive)
-                      GestureDetector(
-                        onTap: onToggleMode,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF6366F1).withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: const Color(0xFF6366F1).withValues(alpha: 0.4),
-                            ),
-                          ),
-                          child: const Text(
-                            'ADAPTIVE',
-                            style: TextStyle(
-                              color: Color(0xFF6366F1),
-                              fontSize: 8,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.8,
-                            ),
+                  ),
+                  const SizedBox(width: 6),
+                  if (isAdaptive)
+                    GestureDetector(
+                      onTap: onToggleMode,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: const Color(0xFF6366F1).withValues(alpha: 0.4),
                           ),
                         ),
-                      )
-                    else
-                      GestureDetector(
-                        onTap: onToggleMode,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF374151).withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text(
-                            'LINEAR',
-                            style: TextStyle(
-                              color: Color(0xFF6B7280),
-                              fontSize: 8,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.8,
-                            ),
+                        child: const Text(
+                          'ADAPTIVE',
+                          style: TextStyle(
+                            color: Color(0xFF6366F1),
+                            fontSize: 8,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
                           ),
                         ),
                       ),
-                    IconButton(
-                      icon: const Icon(Icons.logout, size: 16, color: Color(0xFF9CA3AF)),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: () async {
-                        await authService.clearToken();
-                        if (context.mounted) {
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (_) => const LoginScreen()),
-                          );
-                        }
-                      },
+                    )
+                  else
+                    GestureDetector(
+                      onTap: onToggleMode,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF374151).withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'LINEAR',
+                          style: TextStyle(
+                            color: Color(0xFF6B7280),
+                            fontSize: 8,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ),
                     ),
-                  ],
-                ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF9CA3AF)),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    tooltip: 'Back to Path',
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
               ),
               // Stats
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   _StatChip(
                     icon: '🔥',
@@ -503,7 +502,6 @@ class _ProgressHeader extends StatelessWidget {
                         ? const Color(0xFFF97316)
                         : const Color(0xFF4B5563),
                   ),
-                  const SizedBox(width: 8),
                   _StatChip(
                     icon: '🎓',
                     value: '${(mastery * 100).toInt()}%',
@@ -511,15 +509,12 @@ class _ProgressHeader extends StatelessWidget {
                         ? const Color(0xFF10B981)
                         : const Color(0xFF4B5563),
                   ),
-                  if (isOffline) ...[
-                    const SizedBox(width: 8),
+                  if (isOffline)
                     _StatChip(
                       icon: '☁️',
                       value: 'Offline',
                       color: const Color(0xFFFBBF24),
                     ),
-                  ],
-                  const SizedBox(width: 10),
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -555,146 +550,12 @@ class _ProgressHeader extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ],
-
-          const SizedBox(height: 10),
-
-          // ── Dual-track progress bars ────────────────────────────────────
-          // Top: mastery delta (what actually matters)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Text('Mastery gained',
-                      style: TextStyle(
-                          color: Color(0xFF4B5563), fontSize: 9)),
-                  const Spacer(),
-                  Text('Questions done',
-                      style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          fontSize: 9)),
-                ],
-              ),
-              const SizedBox(height: 3),
-              Stack(
-                children: [
-                  // Completion track (background, subtle)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: completionProgress,
-                      backgroundColor: const Color(0xFF1F2937),
-                      valueColor: AlwaysStoppedAnimation(
-                        const Color(0xFF374151).withValues(alpha: 0.6),
-                      ),
-                      minHeight: 5,
-                    ),
-                  ),
-                  // Mastery track (foreground, vivid)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0, end: masteryProgress),
-                      duration: const Duration(milliseconds: 450),
-                      curve: Curves.easeOutCubic,
-                      builder: (_, value, _) => LinearProgressIndicator(
-                        value: value,
-                        backgroundColor: Colors.transparent,
-                        valueColor: const AlwaysStoppedAnimation(Color(0xFF6366F1)),
-                        minHeight: 5,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
         ],
       ),
     );
   }
 }
 
-// ── Confidence check-in ────────────────────────────────────────────────────
-
-class _ConfidenceRow extends StatelessWidget {
-  final double? current;
-  final void Function(double) onSelect;
-
-  const _ConfidenceRow({required this.current, required this.onSelect});
-
-  static const _levels = [0.25, 0.5, 0.75, 1.0];
-  static const _labels = ['Guessing', 'Unsure', 'Pretty sure', 'Certain'];
-  static const _emojis = ['🤔', '🙂', '😊', '💪'];
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'How sure are you?',
-            style: TextStyle(
-              color: Color(0xFF6B7280),
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: List.generate(_levels.length, (i) {
-              final selected = current != null &&
-                  (current! - _levels[i]).abs() < 0.01;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => onSelect(_levels[i]),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    margin: EdgeInsets.only(right: i < _levels.length - 1 ? 6 : 0),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? const Color(0xFF6366F1).withValues(alpha: 0.15)
-                          : const Color(0xFF1F2937),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: selected
-                            ? const Color(0xFF6366F1)
-                            : const Color(0xFF374151),
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(_emojis[i],
-                            style: const TextStyle(fontSize: 14)),
-                        const SizedBox(height: 2),
-                        Text(
-                          _labels[i],
-                          style: TextStyle(
-                            color: selected
-                                ? const Color(0xFF6366F1)
-                                : const Color(0xFF4B5563),
-                            fontSize: 9,
-                            fontWeight: selected
-                                ? FontWeight.w600
-                                : FontWeight.w400,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 // ── Session recap ──────────────────────────────────────────────────────────────
 

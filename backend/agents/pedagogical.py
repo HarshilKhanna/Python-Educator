@@ -89,11 +89,11 @@ def _prerequisites_met(topic_id: str, mastery_map: dict[str, float]) -> bool:
 
 def _recent_activity_types(recent_events: list[Any]) -> list[str]:
     """Extract the activity types from recent signals for repetition-avoidance."""
-    # AdaptationEvent.signal is e.g. "correct" or "incorrect".
-    # We can't directly infer activity_type from the signal here,
-    # so we track by looking at ordering. For now we return an empty list
-    # (full repetition-avoidance requires activity_type stored on AdaptationEvent).
-    return []
+    types = []
+    for e in recent_events:
+        if getattr(e, "activity_type", None):
+            types.append(e.activity_type)
+    return types
 
 
 def _pick_activity_type(recent_types: list[str]) -> str:

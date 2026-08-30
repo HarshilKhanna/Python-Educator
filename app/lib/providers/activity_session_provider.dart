@@ -5,6 +5,8 @@ import '../models/activity.dart';
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
 import '../services/offline_queue.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'mastery_provider.dart';
 
 // ── State ────────────────────────────────────────────────────────────────────
 
@@ -97,7 +99,22 @@ class ActivitySessionState {
   bool get isCorrect {
     final act = currentActivity;
     if (act == null || selectedAnswer == null) return false;
-    return selectedAnswer == act.correctAnswer;
+    final sub = selectedAnswer!.trim();
+    final cor = act.correctAnswer.trim();
+    if (sub == cor || sub.replaceAll('"', "'") == cor.replaceAll('"', "'")) return true;
+
+    if (cor.startsWith('[') && cor.endsWith(']')) {
+      final unbracketed = cor.substring(1, cor.length - 1);
+      final items = unbracketed.split(',').map((e) {
+        var s = e.trim();
+        if ((s.startsWith("'") && s.endsWith("'")) || (s.startsWith('"') && s.endsWith('"'))) {
+          s = s.substring(1, s.length - 1);
+        }
+        return s.replaceAll(r"\'", "'").replaceAll(r'\"', '"');
+      }).join('|');
+      if (sub == items || sub.replaceAll('"', "'") == items.replaceAll('"', "'")) return true;
+    }
+    return false;
   }
 
   bool get isLastActivity =>
@@ -177,8 +194,23 @@ const _sentinel = Object();
 // ── Notifier ─────────────────────────────────────────────────────────────────
 
 class ActivitySessionNotifier extends Notifier<ActivitySessionState> {
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+
   @override
-  ActivitySessionState build() => const ActivitySessionState();
+  ActivitySessionState build() {
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((results) {
+      if (results.isNotEmpty && results.first != ConnectivityResult.none) {
+        // Automatically sync the queue when connection is restored
+        offlineQueue.syncQueue(onTokenExpired: _handleTokenExpired);
+      }
+    });
+
+    ref.onDispose(() {
+      _connectivitySubscription?.cancel();
+    });
+
+    return const ActivitySessionState();
+  }
 
   @visibleForTesting
   void loadActivities(List<Activity> activities) {
@@ -196,7 +228,7 @@ class ActivitySessionNotifier extends Notifier<ActivitySessionState> {
   /// 1. Calls GET /activities/next to get the agent's recommendation.
   /// 2. Calls GET /activities?topic_id=<recommended> to get the full list.
   /// 3. Sorts the list so the recommended activity_type comes first.
-  Future<void> fetchAdaptiveActivities() async {
+  Future<void> fetchAdaptiveActivities({double? initialMastery}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
       // 1. Ask the Pedagogical Agent via the Orchestrator
@@ -241,8 +273,8 @@ class ActivitySessionNotifier extends Notifier<ActivitySessionState> {
         isAdaptive: true,
         agentReason: rec.reason,
         nextRecommendation: rec,
-        mastery: state.mastery,
-        initialMastery: state.mastery,
+        mastery: initialMastery ?? state.mastery,
+        initialMastery: initialMastery ?? state.mastery,
       );
     } on AuthException {
       state = state.copyWith(isLoading: false, needsRelogin: true);
@@ -255,7 +287,7 @@ class ActivitySessionNotifier extends Notifier<ActivitySessionState> {
   }
 
   /// Fetch a flat list of activities for [topicId] (manual / topic-select mode).
-  Future<void> fetchActivities(String topicId) async {
+  Future<void> fetchActivities(String topicId, {double? initialMastery}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final activities = await apiClient.fetchActivities(topicId);
@@ -266,8 +298,8 @@ class ActivitySessionNotifier extends Notifier<ActivitySessionState> {
         currentIndex: 0,
         isLoading: false,
         isAdaptive: false,
-        mastery: state.mastery,
-        initialMastery: state.mastery,
+        mastery: initialMastery ?? state.mastery,
+        initialMastery: initialMastery ?? state.mastery,
       );
     } on AuthException {
       state = state.copyWith(isLoading: false, needsRelogin: true);
@@ -369,9 +401,9 @@ class ActivitySessionNotifier extends Notifier<ActivitySessionState> {
         confidence: confidence,
       );
       
-      final newMastery = (responseData['mastery'] as num).toDouble();
-      final newStreak = responseData['streak'] as int;
-      final newXp = responseData['xp'] as int;
+      final newMastery = (responseData['mastery'] as num?)?.toDouble() ?? state.mastery;
+      final newStreak = (responseData['streak'] as num?)?.toInt() ?? state.streak;
+      final newXp = (responseData['xp'] as num?)?.toInt() ?? state.xp;
       
       state = state.copyWith(
         mastery: newMastery,
@@ -379,6 +411,9 @@ class ActivitySessionNotifier extends Notifier<ActivitySessionState> {
         xp: newXp,
         isOffline: false,
       );
+
+      // Invalidate global mastery cache so learning path & section screens reflect the update immediately
+      ref.invalidate(masteryProvider);
 
       // Online → drain offline queue
       await offlineQueue.syncQueue(onTokenExpired: _handleTokenExpired);
