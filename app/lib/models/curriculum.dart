@@ -49,17 +49,77 @@ const List<TopicMeta> topicMeta = [
   TopicMeta(id: 'files',            label: 'Files & I/O',        emoji: '📁'),
 ];
 
-/// Returns true if all prerequisites for [topicId] are at or above [masteryThreshold].
-bool isTopicUnlocked(String topicId, Map<String, double> masteryMap) {
-  final prereqs = curriculumGraph[topicId] ?? [];
-  for (final prereq in prereqs) {
-    if ((masteryMap[prereq] ?? 0.0) < masteryThreshold) return false;
+/// Computes the set of unlocked topic IDs across the entire curriculum.
+///
+/// Progressive Unlocking (Latch) Rules:
+/// 1. The first topic is always unlocked.
+/// 2. Once a topic has any recorded progress/mastery (> 0.0), it is permanently unlocked.
+/// 3. Normal progression: an unstarted topic unlocks when all prerequisites are unlocked and >= masteryThreshold.
+/// 4. Downstream invariant (Parent Latch): If topic N is unlocked or started, all its ancestor prerequisites and prior sequence nodes are permanently unlocked.
+Set<String> computeUnlockedTopics(Map<String, double> masteryMap) {
+  final unlocked = <String>{};
+
+  // 1. First topic is always unlocked
+  if (curriculumOrder.isNotEmpty) {
+    unlocked.add(curriculumOrder.first);
   }
-  return true;
+
+  // 2. Any topic with existing progress (> 0.0) is already unlocked
+  for (final entry in masteryMap.entries) {
+    if (entry.value > 0.0) {
+      unlocked.add(entry.key);
+    }
+  }
+
+  // 3. Normal forward propagation
+  for (final topicId in curriculumOrder) {
+    final prereqs = curriculumGraph[topicId] ?? [];
+    if (prereqs.isEmpty) {
+      unlocked.add(topicId);
+    } else {
+      final allPrereqsMet = prereqs.every((p) =>
+          unlocked.contains(p) && (masteryMap[p] ?? 0.0) >= masteryThreshold);
+      if (allPrereqsMet) {
+        unlocked.add(topicId);
+      }
+    }
+  }
+
+  // 4. Backward latch propagation (if topic N is unlocked, all ancestors & prior nodes must be unlocked)
+  bool changed = true;
+  while (changed) {
+    changed = false;
+    for (final topicId in unlocked.toList()) {
+      final prereqs = curriculumGraph[topicId] ?? [];
+      for (final p in prereqs) {
+        if (!unlocked.contains(p)) {
+          unlocked.add(p);
+          changed = true;
+        }
+      }
+      final idx = curriculumOrder.indexOf(topicId);
+      if (idx > 0) {
+        for (int i = 0; i < idx; i++) {
+          if (!unlocked.contains(curriculumOrder[i])) {
+            unlocked.add(curriculumOrder[i]);
+            changed = true;
+          }
+        }
+      }
+    }
+  }
+
+  return unlocked;
 }
 
-/// Returns the names of the blocking prerequisites (those below threshold).
+/// Returns true if [topicId] is unlocked.
+bool isTopicUnlocked(String topicId, Map<String, double> masteryMap) {
+  return computeUnlockedTopics(masteryMap).contains(topicId);
+}
+
+/// Returns the names of the blocking prerequisites (those below threshold), or empty if unlocked.
 List<String> blockingPrereqs(String topicId, Map<String, double> masteryMap) {
+  if (isTopicUnlocked(topicId, masteryMap)) return [];
   final prereqs = curriculumGraph[topicId] ?? [];
   return prereqs.where((p) => (masteryMap[p] ?? 0.0) < masteryThreshold).toList();
 }

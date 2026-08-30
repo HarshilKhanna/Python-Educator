@@ -22,11 +22,17 @@ class PythonEducatorApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: scheme,
-        scaffoldBackgroundColor: settings.highContrast ? Colors.black : const Color(0xFF0A0E1A),
+        scaffoldBackgroundColor: settings.colors.background,
+        cardColor: settings.colors.cardBackground,
         useMaterial3: true,
         textTheme: const TextTheme().apply(
           fontSizeFactor: 1.0, // base; MediaQuery override below handles scale
           fontFamily: settings.dyslexiaFont ? 'OpenDyslexic' : null,
+          fontFamilyFallback: settings.dyslexiaFont
+              ? const ['OpenDyslexic', 'Comic Sans MS', 'Verdana', 'sans-serif']
+              : null,
+          bodyColor: settings.colors.textPrimary,
+          displayColor: settings.colors.textPrimary,
         ),
       ),
       builder: (context, child) {

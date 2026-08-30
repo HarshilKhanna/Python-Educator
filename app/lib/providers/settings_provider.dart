@@ -127,10 +127,10 @@ ColorScheme highContrastScheme() => ColorScheme.fromSeed(
   brightness: Brightness.dark,
   surface: Colors.black,
   onSurface: Colors.white,
-  primary: const Color(0xFF7C3AED),
+  primary: const Color(0xFF818CF8),
   onPrimary: Colors.white,
-  secondary: const Color(0xFF059669),
-  error: const Color(0xFFDC2626),
+  secondary: const Color(0xFF34D399),
+  error: const Color(0xFFEF4444),
 );
 
 ColorScheme defaultScheme() => ColorScheme.fromSeed(
@@ -138,3 +138,45 @@ ColorScheme defaultScheme() => ColorScheme.fromSeed(
   brightness: Brightness.dark,
   surface: const Color(0xFF141824),
 );
+
+class AppThemeColors {
+  final Color background;
+  final Color cardBackground;
+  final Color cardBorder;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color textMuted;
+  final Color accent;
+
+  const AppThemeColors({
+    required this.background,
+    required this.cardBackground,
+    required this.cardBorder,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.textMuted,
+    required this.accent,
+  });
+}
+
+extension AppSettingsTheme on AppSettings {
+  AppThemeColors get colors => highContrast
+      ? const AppThemeColors(
+          background: Colors.black,
+          cardBackground: Color(0xFF121212),
+          cardBorder: Color(0xFF818CF8),
+          textPrimary: Colors.white,
+          textSecondary: Color(0xFFF3F4F6),
+          textMuted: Color(0xFFE5E7EB),
+          accent: Color(0xFF818CF8),
+        )
+      : const AppThemeColors(
+          background: Color(0xFF0A0E1A),
+          cardBackground: Color(0xFF141824),
+          cardBorder: Color(0xFF1F2937),
+          textPrimary: Colors.white,
+          textSecondary: Color(0xFF9CA3AF),
+          textMuted: Color(0xFF6B7280),
+          accent: Color(0xFF6366F1),
+        );
+}

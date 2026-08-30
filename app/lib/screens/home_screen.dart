@@ -10,22 +10,37 @@ import 'login_screen.dart';
 
 // ── HomeScreen ──────────────────────────────────────────────────────────────
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Ensure fresh progress is fetched from the server as soon as HomeScreen mounts
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(masteryProvider);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = ref.watch(settingsProvider);
     final masteryAsync = ref.watch(masteryProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0E1A),
+      backgroundColor: settings.colors.background,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _Header(
               onLogout:   () => _logout(context),
-              onSettings: () => _showSettings(context),
+              onSettings: () => _showSettings(context, settings),
             ),
             Expanded(
               child: masteryAsync.when(
@@ -55,6 +70,7 @@ class HomeScreen extends ConsumerWidget {
 
   Future<void> _logout(BuildContext context) async {
     await authService.clearToken();
+    ref.invalidate(masteryProvider);
     if (context.mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -62,10 +78,10 @@ class HomeScreen extends ConsumerWidget {
     }
   }
 
-  void _showSettings(BuildContext context) {
+  void _showSettings(BuildContext context, AppSettings settings) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF141824),
+      backgroundColor: settings.colors.cardBackground,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -283,7 +299,7 @@ class _TopicNode extends StatelessWidget {
 
 // ── Topic card ──────────────────────────────────────────────────────────────
 
-class _TopicCard extends StatelessWidget {
+class _TopicCard extends ConsumerWidget {
   final curr.TopicMeta meta;
   final double masteryLevel;
   final bool unlocked;
@@ -301,7 +317,9 @@ class _TopicCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(settingsProvider);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -321,13 +339,17 @@ class _TopicCard extends StatelessWidget {
               }
             : () => _showLockedDialog(context),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
+          duration: settings.reducedMotion
+              ? Duration.zero
+              : const Duration(milliseconds: 300),
           decoration: BoxDecoration(
-            color: const Color(0xFF141824),
+            color: settings.colors.cardBackground,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: accentColor.withValues(alpha: unlocked ? 0.3 : 0.1),
-              width: 1,
+              color: settings.highContrast
+                  ? (unlocked ? settings.colors.cardBorder : const Color(0xFF4B5563))
+                  : accentColor.withValues(alpha: unlocked ? 0.3 : 0.1),
+              width: settings.highContrast ? 2 : 1,
             ),
           ),
           padding: const EdgeInsets.all(16),
@@ -341,8 +363,8 @@ class _TopicCard extends StatelessWidget {
                       meta.label,
                       style: TextStyle(
                         color: unlocked
-                            ? const Color(0xFFF9FAFB)
-                            : const Color(0xFF4B5563),
+                            ? (settings.highContrast ? Colors.white : const Color(0xFFF9FAFB))
+                            : (settings.highContrast ? const Color(0xFF9CA3AF) : const Color(0xFF4B5563)),
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),

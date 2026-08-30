@@ -7,21 +7,23 @@ library;
 
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
 import '../services/auth_service.dart';
 import '../config.dart';
+import '../providers/mastery_provider.dart';
 import 'home_screen.dart';
 import 'onboarding_screen.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
@@ -68,6 +70,9 @@ class _LoginScreenState extends State<LoginScreen> {
           userId: data['user_id'] as String,
           role: data['role'] as String,
         );
+
+        // Invalidate mastery cache so HomeScreen loads fresh progress immediately
+        ref.invalidate(masteryProvider);
 
         if (mounted) {
           if (_isRegisterMode) {
