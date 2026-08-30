@@ -90,8 +90,8 @@ graph TB
 
     AnswerRouter -->|Direct Grading Signal| LearnerModelService
     PedagogicalAgent -->|Adaptation Proposal| RiskPolicy
-    RiskPolicy -->|Low Risk (Auto-Apply)| LearnerModelService
-    RiskPolicy -->|High Risk (Escalate)| ReviewRouter
+    RiskPolicy -->|Low Risk - Auto-Apply| LearnerModelService
+    RiskPolicy -->|High Risk - Escalate| ReviewRouter
     
     LearnerModelService -->|Atomic Transaction| MasteryTable
     LearnerModelService -->|Append Record| AuditLog
@@ -186,7 +186,7 @@ flowchart TB
         UC2(["UC-2: Navigate Curriculum Path"])
         UC3(["UC-3: Practice Interactive Exercises"])
         UC4(["UC-4: Converse with Socratic AI Tutor"])
-        UC5(["UC-5: Toggle Accessibility Modes (Dyslexia/High Contrast)"])
+        UC5(["UC-5: Toggle Accessibility Modes"])
     end
 
     subgraph SystemUseCases ["System / Agent Autonomous Use Cases"]
@@ -209,17 +209,17 @@ flowchart TB
     StudentActor --> UC4
     StudentActor --> UC5
 
-    UC3 -.->|«triggers»| UC6
-    UC4 -.->|«includes»| UC7
-    UC6 -.->|«updates»| UC8
-    UC4 -.->|«evaluates»| UC9
+    UC3 -.->|triggers| UC6
+    UC4 -.->|includes| UC7
+    UC6 -.->|updates| UC8
+    UC4 -.->|evaluates| UC9
 
     InstructorActor["👨‍🏫 Instructor"] --> UC10
     InstructorActor --> UC11
     InstructorActor --> UC12
     InstructorActor --> UC13
     
-    UC9 -.->|«escalates high risk»| UC11
+    UC9 -.->|escalates high risk| UC11
 ```
 
 ---
@@ -275,7 +275,7 @@ classDiagram
         +String activity_type
         +String prompt_text
         +String code_snippet
-        +List~String~ options
+        +List options
         +String correct_answer
         +String explanation
         +Integer difficulty
@@ -298,14 +298,14 @@ classDiagram
     }
 
     class RAGPipeline {
-        +chunk_handbook(docs) List~Chunk~
+        +chunk_handbook(docs) List
         +embed_text(query) Vector
-        +retrieve(query, top_k) List~SourceChunk~
+        +retrieve(query, top_k) List
     }
 
-    User "1" --> "0..*" Mastery : tracks
-    User "1" --> "0..*" AdaptationEvent : generates
-    User "1" --> "0..*" AuditLog : logs
+    User "1" --> "*" Mastery : tracks
+    User "1" --> "*" AdaptationEvent : generates
+    User "1" --> "*" AuditLog : logs
     Mastery "1" <-- LearnerModelService : updates atomically
     AdaptationEvent "1" <-- LearnerModelService : appends
     PedagogicalAgent --> LearnerModelService : proposes delta
@@ -329,7 +329,7 @@ sequenceDiagram
     participant LMS as ⚙️ LearnerModelService
     participant DB as 🗄️ PostgreSQL (Mastery & Audit)
 
-    Student->>Gateway: POST /tutor/chat (query="Why does `if x = 5:` fail?", code)
+    Student->>Gateway: POST /tutor/chat (query="Why does if x = 5 fail?", code)
     Gateway->>Orchestrator: invoke(state)
     
     rect rgb(30, 41, 59)
