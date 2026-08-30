@@ -61,7 +61,9 @@ RiskTier = Literal["low", "medium", "high"]
 def _prerequisites_satisfied(
     next_topic_id: str, mastery_map: dict[str, float], mastery_threshold: float = 0.7
 ) -> bool:
-    """Return True if all prerequisites for next_topic_id are at or above threshold."""
+    """Return True if next_topic_id is already active or all prerequisites meet threshold."""
+    if mastery_map.get(next_topic_id, 0.0) > 0.0:
+        return True
     for prereq in CURRICULUM_GRAPH.get(next_topic_id, []):
         if mastery_map.get(prereq, 0.0) < mastery_threshold:
             return False

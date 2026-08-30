@@ -80,7 +80,9 @@ class PedagogicalDecision:
 # ---------------------------------------------------------------------------
 
 def _prerequisites_met(topic_id: str, mastery_map: dict[str, float]) -> bool:
-    """Return True if all prerequisites for topic_id are at or above MASTERY_THRESHOLD."""
+    """Return True if topic_id is already active or all prerequisites meet MASTERY_THRESHOLD."""
+    if mastery_map.get(topic_id, 0.0) > 0.0:
+        return True
     for prereq in CURRICULUM_GRAPH.get(topic_id, []):
         if mastery_map.get(prereq, 0.0) < MASTERY_THRESHOLD:
             return False

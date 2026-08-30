@@ -8,7 +8,7 @@
 ## Table of Contents
 
 1. [What This Is](#1-what-this-is)
-2. [Architecture Overview](#2-architecture-overview)
+2. [System Architecture & UML Design Diagrams](#2-system-architecture--uml-design-diagrams)
 3. [Tech Stack](#3-tech-stack)
 4. [Repository Layout](#4-repository-layout)
 5. [Prerequisites](#5-prerequisites)
@@ -39,44 +39,354 @@ The system is scoped as a **research prototype** — not a production service. T
 
 ---
 
-## 2. Architecture Overview
+## 2. System Architecture & UML Design Diagrams
 
+### 2.1 Global System Architecture (4-Tier)
+
+```mermaid
+graph TB
+    subgraph PresentationLayer ["1. Presentation Layer"]
+        FlutterApp["📱 Student App (Flutter: Android, iOS, Web)"]
+        InstructorUI["💻 Instructor Dashboard (React 18 + Vite)"]
+    end
+
+    subgraph GatewayLayer ["2. API Gateway & Security Layer (FastAPI)"]
+        AuthRouter["🔐 Auth & JWT Verification (/auth)"]
+        AnswerRouter["📝 Answer Verifier & Normalizer (/answer)"]
+        TutorRouter["💬 Tutor Streaming Gateway (/tutor/chat)"]
+        ReviewRouter["⚖️ Human-in-the-Loop Review Queue (/review)"]
+    end
+
+    subgraph AgentLayer ["3. Multi-Agent Orchestration Layer (LangGraph)"]
+        Router["🔀 Orchestrator (Intent Router / Conditional Edge)"]
+        DiagnosticAgent["🔍 Diagnostic Agent (Code AST & Misconception Reasoner)"]
+        PedagogicalAgent["🎓 Pedagogical Agent (Socratic Planner & Scaffolding)"]
+        ContentAgent["📦 Content Agent (Exercise Generator & Selector)"]
+        RiskPolicy["🛡️ Stateless Risk Policy (Low/High Risk Classifier)"]
+    end
+
+    subgraph ServiceLayer ["4. Domain & Service Layer"]
+        LearnerModelService["⚙️ LearnerModelService (Single Write-Path Gatekeeper)"]
+        RAGService["📚 RAG Pipeline (SentenceTransformers & Cosine Search)"]
+    end
+
+    subgraph PersistenceLayer ["5. Persistence & Vector Storage (PostgreSQL 16)"]
+        PostgresDB[("🗄️ PostgreSQL Database")]
+        VectorStore[("⚡ pgvector Handbook Embeddings")]
+        AuditLog[("📜 Append-Only Audit Log & Adaptation Events")]
+        MasteryTable[("📊 Bayesian Mastery State")]
+    end
+
+    FlutterApp -->|HTTPS / WSS| GatewayLayer
+    InstructorUI -->|HTTPS / REST| GatewayLayer
+    
+    TutorRouter --> Router
+    Router -->|Code Submission / Error| DiagnosticAgent
+    Router -->|Conceptual Query / Request| PedagogicalAgent
+    DiagnosticAgent -->|Inferred Diagnosis| PedagogicalAgent
+    PedagogicalAgent -->|Pacing Decision| ContentAgent
+    PedagogicalAgent -->|Handbook Context Query| RAGService
+    RAGService -->|Semantic Chunks| VectorStore
+
+    AnswerRouter -->|Direct Grading Signal| LearnerModelService
+    PedagogicalAgent -->|Adaptation Proposal| RiskPolicy
+    RiskPolicy -->|Low Risk (Auto-Apply)| LearnerModelService
+    RiskPolicy -->|High Risk (Escalate)| ReviewRouter
+    
+    LearnerModelService -->|Atomic Transaction| MasteryTable
+    LearnerModelService -->|Append Record| AuditLog
+    PostgresDB --- VectorStore
+    PostgresDB --- AuditLog
+    PostgresDB --- MasteryTable
 ```
-Student Turn  (Flutter app  -->  POST /tutor/chat)
-                       |
-            [Orchestrator Node]
-            heuristic intent classifier
-                       |
-          _____________|_____________
-         |                           |
- [Technical Agent]         [Pedagogical Agent]
-  RAG retrieval               Reads LearnerModel
-  + grounded LLM              Decides next activity
-  answer                      type and difficulty
-         |                           |
-          ___________________________
-                       |
-            [Risk Policy — stateless]
-            auto-approve / queue for review
-                       |
-            [LearnerModelService]   <-- ONLY write path to mastery
-                       |
-            [PostgreSQL + pgvector]
-             mastery  events  RAG chunks
-             audit_log  review queue
+
+---
+
+### 2.2 LangGraph 3-Node Multi-Agent State Machine Flow
+
+```mermaid
+flowchart TD
+    Start([Student Input: Chat Query or Code Submission]) --> Router{Orchestrator Router}
+
+    Router -->|Code Submission / Trace| DiagnosticNode["🔍 Diagnostic Node<br/>• AST Syntax & Logic Parsing<br/>• Misconception Classification<br/>• Slip vs Guess Bayesian Assessment"]
+    Router -->|Conceptual Question| PedagogicalNode["🎓 Pedagogical Node<br/>• RAG Context Injection (pgvector)<br/>• Socratic Prompt Formulation<br/>• Repetition-Avoidance Policy"]
+
+    DiagnosticNode -->|Cognitive Diagnosis| PedagogicalNode
+    
+    PedagogicalNode -->|Action: Next Practice Item| ContentNode["📦 Content Node<br/>• Dynamic Exercise Selection<br/>• Zone of Proximal Development Tuning"]
+    PedagogicalNode -->|Action: Explain / Hint| RiskClassifier{🛡️ Risk Policy Classifier}
+    ContentNode --> RiskClassifier
+
+    RiskClassifier -->|Delta <= 0.15 & Confident| AutoApply["✅ Auto-Apply Adaptation<br/>(LearnerModelService Write Path)"]
+    RiskClassifier -->|Delta > 0.15 or Prereq Leap| ReviewQueue["⏳ Route to Instructor Queue<br/>(Manual Approval Pending)"]
+
+    AutoApply --> Output([Streamed Socratic Response + Next Activity])
+    ReviewQueue --> Output
 ```
 
-### The 3 LangGraph Nodes
+---
 
-| Node | Role | Context / Tools |
-|---|---|---|
-| **Orchestrator** | Heuristic intent classifier — routes to Technical or Pedagogical | Regex patterns; no LLM call |
-| **Technical Agent** | Answers Python questions grounded in retrieved handbook chunks | `rag.retrieve()`, GPT-4o-mini |
-| **Pedagogical Agent** | Decides *how* to respond and which activity to assign next | LearnerModelService, Curriculum Graph, Style Profile |
+### 2.3 Data Flow Diagram (DFD Level 0 & Level 1)
 
-> **Intentional constraint:** The Orchestrator is a structural router (a conditional edge in LangGraph), not a fourth reasoning LLM. Adding a fourth node requires explicit architectural justification per `AGENTS.md`.
+```mermaid
+flowchart LR
+    subgraph ExternalEntities ["External Entities"]
+        Student((Student))
+        Instructor((Instructor))
+    end
 
-### Single Write Path
+    subgraph Level1Processes ["Level 1 Processes"]
+        P1["1.0<br/>Authentication & Access Control"]
+        P2["2.0<br/>Exercise Evaluation & Syntax Normalizer"]
+        P3["3.0<br/>LangGraph Multi-Agent Reasoning"]
+        P4["4.0<br/>Bayesian Knowledge Tracing Updater"]
+        P5["5.0<br/>RAG Handbook Retrieval"]
+        P6["6.0<br/>Instructor Governance & Oversight"]
+    end
+
+    subgraph DataStores ["Data Stores"]
+        D1[("D1: User Accounts")]
+        D2[("D2: Curriculum Activities")]
+        D3[("D3: pgvector Handbook Chunks")]
+        D4[("D4: Mastery State")]
+        D5[("D5: Append-Only Audit Log")]
+    end
+
+    Student -->|Login Credentials| P1
+    P1 <-->|Verify Token| D1
+    
+    Student -->|Submit Answer| P2
+    P2 <-->|Fetch Activity Definition| D2
+    P2 -->|Correct/Incorrect Signal| P4
+    
+    Student -->|Tutor Question| P3
+    P3 <-->|Query Vectors| P5
+    P5 <-->|Cosine Search| D3
+    P3 -->|State Adaptation Proposal| P4
+    
+    P4 -->|Write Atomic State| D4
+    P4 -->|Append Audit Trail| D5
+    
+    Instructor -->|Review Adaptations & Analytics| P6
+    P6 <-->|Read/Write Mastery & Log| D4
+    P6 <-->|Inspect Events| D5
+    
+    P3 -->|Streamed Guidance| Student
+    P2 -->|Grading Feedback| Student
+```
+
+---
+
+### 2.4 UML Use Case Diagram
+
+```mermaid
+flowchart TB
+    subgraph StudentUseCases ["Student Use Cases"]
+        UC1(["UC-1: Authenticate / Login"])
+        UC2(["UC-2: Navigate Curriculum Path"])
+        UC3(["UC-3: Practice Interactive Exercises"])
+        UC4(["UC-4: Converse with Socratic AI Tutor"])
+        UC5(["UC-5: Toggle Accessibility Modes (Dyslexia/High Contrast)"])
+    end
+
+    subgraph SystemUseCases ["System / Agent Autonomous Use Cases"]
+        UC6(["UC-6: Parse Code AST & Infer Misconceptions"])
+        UC7(["UC-7: Retrieve Handbook Vector Embeddings"])
+        UC8(["UC-8: Calculate BKT Mastery & Latch Progression"])
+        UC9(["UC-9: Classify Risk & Auto-Apply Interventions"])
+    end
+
+    subgraph InstructorUseCases ["Instructor Use Cases"]
+        UC10(["UC-10: Review Student Cohort Mastery"])
+        UC11(["UC-11: Approve / Reject High-Risk Adaptations"])
+        UC12(["UC-12: Upload Course Materials for RAG Ingestion"])
+        UC13(["UC-13: Inspect Append-Only Audit Trail"])
+    end
+
+    StudentActor["👤 Student"] --> UC1
+    StudentActor --> UC2
+    StudentActor --> UC3
+    StudentActor --> UC4
+    StudentActor --> UC5
+
+    UC3 -.->|«triggers»| UC6
+    UC4 -.->|«includes»| UC7
+    UC6 -.->|«updates»| UC8
+    UC4 -.->|«evaluates»| UC9
+
+    InstructorActor["👨‍🏫 Instructor"] --> UC10
+    InstructorActor --> UC11
+    InstructorActor --> UC12
+    InstructorActor --> UC13
+    
+    UC9 -.->|«escalates high risk»| UC11
+```
+
+---
+
+### 2.5 UML Class & Data Model Diagram
+
+```mermaid
+classDiagram
+    class User {
+        +UUID id
+        +String email
+        +String hashed_password
+        +String role
+        +Integer streak
+        +Integer best_streak
+        +Integer xp
+        +DateTime created_at
+        +verify_password(password) bool
+    }
+
+    class Mastery {
+        +UUID id
+        +UUID student_id
+        +String topic_id
+        +Float mastery_level
+        +Float confidence_score
+        +DateTime last_updated
+    }
+
+    class AdaptationEvent {
+        +Integer id
+        +UUID student_id
+        +String topic_id
+        +String source
+        +String signal
+        +Float delta
+        +String activity_type
+        +DateTime timestamp
+    }
+
+    class AuditLog {
+        +Integer id
+        +UUID student_id
+        +String topic_id
+        +String action_type
+        +JSON state_snapshot
+        +DateTime created_at
+    }
+
+    class Activity {
+        +UUID id
+        +String topic_id
+        +String activity_type
+        +String prompt_text
+        +String code_snippet
+        +List~String~ options
+        +String correct_answer
+        +String explanation
+        +Integer difficulty
+    }
+
+    class LearnerModelService {
+        +record_update(source, student_id, topic_id, signal, delta) Tuple
+        +get_mastery_map(student_id) Map
+        +calculate_bkt_delta(current_mastery, difficulty, is_correct) Float
+    }
+
+    class DiagnosticAgent {
+        +parse_ast(code) ASTNode
+        +infer_misconception(code, trace) MisconceptionType
+    }
+
+    class PedagogicalAgent {
+        +plan_response(diagnosis, mastery_map) ResponsePlan
+        +select_next_activity_type(recent_types) String
+    }
+
+    class RAGPipeline {
+        +chunk_handbook(docs) List~Chunk~
+        +embed_text(query) Vector
+        +retrieve(query, top_k) List~SourceChunk~
+    }
+
+    User "1" --> "0..*" Mastery : tracks
+    User "1" --> "0..*" AdaptationEvent : generates
+    User "1" --> "0..*" AuditLog : logs
+    Mastery "1" <-- LearnerModelService : updates atomically
+    AdaptationEvent "1" <-- LearnerModelService : appends
+    PedagogicalAgent --> LearnerModelService : proposes delta
+    PedagogicalAgent --> RAGPipeline : retrieves citations
+    DiagnosticAgent --> PedagogicalAgent : feeds diagnosis
+```
+
+---
+
+### 2.6 UML Sequence Diagram (Student Practice & Socratic Adaptation)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Student as 📱 Student (Flutter Client)
+    participant Gateway as 🚪 FastAPI Gateway (/tutor/chat)
+    participant Orchestrator as 🔀 LangGraph Router
+    participant Diagnostic as 🔍 Diagnostic Agent
+    participant Pedagogical as 🎓 Pedagogical Agent
+    participant RAG as 📚 RAG (pgvector)
+    participant LMS as ⚙️ LearnerModelService
+    participant DB as 🗄️ PostgreSQL (Mastery & Audit)
+
+    Student->>Gateway: POST /tutor/chat (query="Why does `if x = 5:` fail?", code)
+    Gateway->>Orchestrator: invoke(state)
+    
+    rect rgb(30, 41, 59)
+        note over Orchestrator,Diagnostic: Multi-Agent Reasoning Execution
+        Orchestrator->>Diagnostic: evaluateCode(code)
+        Diagnostic-->>Orchestrator: Misconception: "assignment_used_in_conditional_equality"
+        Orchestrator->>Pedagogical: synthesizeScaffold(diagnosis, student_id)
+        Pedagogical->>RAG: retrieve("Python comparison operators equality vs assignment")
+        RAG-->>Pedagogical: Top Handbook Chunks (file="02-conditionals.md", section="4.1")
+        Pedagogical-->>Orchestrator: Socratic Explanation + low_risk_delta
+    end
+
+    Orchestrator->>LMS: record_update(source="pedagogical", delta=+0.05)
+    LMS->>DB: UPDATE mastery SET level=level+0.05, INSERT INTO audit_log
+    DB-->>LMS: Commit OK
+    LMS-->>Gateway: Updated Mastery State (0.56)
+
+    Gateway-->>Student: SSE Stream: Socratic Hint + Handbook Citations + Mastery Sync
+```
+
+---
+
+### 2.7 Curriculum Prerequisite Knowledge Graph & Monotonic Latch
+
+```mermaid
+flowchart LR
+    subgraph CurriculumDAG ["Curriculum Prerequisite Graph (7 Core Topics)"]
+        T1["⚡ Operators & Basics<br/>(Entry Node)"]
+        T2["🔀 Conditionals<br/>(Requires Basics >= 70%)"]
+        T3["🔄 Loops<br/>(Requires Conditionals >= 70%)"]
+        T4["📋 Lists<br/>(Requires Loops >= 70%)"]
+        T5["🔤 Strings<br/>(Requires Lists >= 70%)"]
+        T6["📖 Dictionaries<br/>(Requires Strings >= 70%)"]
+        T7["📁 Files & I/O<br/>(Requires Dictionaries >= 70%)"]
+
+        T1 --> T2
+        T2 --> T3
+        T3 --> T4
+        T4 --> T5
+        T5 --> T6
+        T6 --> T7
+    end
+
+    subgraph LatchRule ["🔒 Monotonic High-Water Latch Invariant"]
+        direction TB
+        L1["Rule 1: Entry node (Basics) is always unlocked."]
+        L2["Rule 2: Any topic with mastery > 0.0 is permanently unlocked."]
+        L3["Rule 3: If topic K is unlocked, all predecessor topics (0..K-1) remain unlocked."]
+        L4["Rule 4: Performance drops in parent topics never re-lock unlocked children."]
+    end
+
+    CurriculumDAG --- LatchRule
+```
+
+---
+
+### 2.8 Single Write Path Architecture
 
 All writes to `mastery`, `confidence`, and `adaptation_events` flow exclusively through:
 
