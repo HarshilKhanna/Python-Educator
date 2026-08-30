@@ -69,9 +69,10 @@ export default function App() {
         <div className="nav-actions">
           <button
             onClick={toggleKillSwitch}
-            className={`btn ${killSwitchActive ? 'btn-danger' : 'btn-ghost'} btn-sm`}
+            className={`btn ${killSwitchActive ? 'btn-danger' : 'btn-primary'} btn-sm`}
+            title={killSwitchActive ? "Disable Override: Allow AI auto-approvals again" : "Enable Override: Force all AI actions to Manual Review"}
           >
-            {killSwitchActive ? 'AI MANUAL' : 'AI AUTO'}
+            {killSwitchActive ? 'System: MANUAL (Override)' : 'System: AI AUTO'}
           </button>
           <button
             className="btn btn-ghost btn-sm"

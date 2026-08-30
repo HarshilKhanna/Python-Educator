@@ -1,14 +1,21 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getStudentMastery } from '../api'
+import { getStudentMastery, getStudents } from '../api'
 
 export default function StudentMastery() {
   const { id: paramId } = useParams()
   const navigate = useNavigate()
   const [studentId, setStudentId] = useState(paramId || '')
+  const [students, setStudents] = useState([])
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+
+  useEffect(() => {
+    getStudents()
+      .then(res => setStudents(res.students || []))
+      .catch(console.error)
+  }, [])
 
   const handleSearch = async (e) => {
     e?.preventDefault()
@@ -47,14 +54,20 @@ export default function StudentMastery() {
 
       <div className="card">
         <form id="student-search-form" onSubmit={handleSearch} style={{ display: 'flex', gap: 10 }}>
-          <input
+          <select
             id="student-id-input"
-            type="text"
-            placeholder="Enter student ID…"
             value={studentId}
             onChange={e => setStudentId(e.target.value)}
             style={{ flex: 1 }}
-          />
+            className="form-input"
+          >
+            <option value="" disabled>Select a student...</option>
+            {students.map(s => (
+              <option key={s.id} value={s.id}>
+                {s.email} ({s.id.slice(0, 8)}...)
+              </option>
+            ))}
+          </select>
           <button
             id="student-search-btn"
             type="submit"

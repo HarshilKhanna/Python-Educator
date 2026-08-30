@@ -23,6 +23,14 @@ router = APIRouter(prefix="/students", tags=["Students"])
 # Response schemas
 # ---------------------------------------------------------------------------
 
+class StudentSummary(BaseModel):
+    id: str
+    email: str
+    role: str
+
+class StudentsListResponse(BaseModel):
+    students: list[StudentSummary]
+
 class TopicMastery(BaseModel):
     topic_id: str
     mastery_level: float
@@ -49,6 +57,22 @@ class StudentMasteryResponse(BaseModel):
 # ---------------------------------------------------------------------------
 # Endpoint
 # ---------------------------------------------------------------------------
+
+@router.get("", response_model=StudentsListResponse)
+async def get_students(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_auth),
+):
+    if current_user.role != "instructor":
+        raise HTTPException(
+            status_code=403,
+            detail="Only instructors may view the student list.",
+        )
+    stmt = select(User).where(User.role == "student").order_by(User.email)
+    result = await db.execute(stmt)
+    users = result.scalars().all()
+    out = [StudentSummary(id=u.id, email=u.email, role=u.role) for u in users]
+    return StudentsListResponse(students=out)
 
 @router.get("/{student_id}/mastery", response_model=StudentMasteryResponse)
 async def get_student_mastery(

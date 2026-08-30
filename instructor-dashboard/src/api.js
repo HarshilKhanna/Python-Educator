@@ -107,3 +107,8 @@ export const setKillSwitch = (active) =>
     method: 'POST',
     body: JSON.stringify({ active }),
   })
+
+export async function getStudents() {
+  return request('/students');
+}
+
